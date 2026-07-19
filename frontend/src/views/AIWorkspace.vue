@@ -41,34 +41,26 @@
     <!-- All enabled -->
     <div class="section">
       <h3 class="section-label">🤖 全部 AI</h3>
-      <draggable
-        v-model="sortedProviders"
-        item-key="id"
-        :animation="200"
-        ghost-class="sortable-ghost"
-        @change="onDragChange"
-      >
-        <template #item="{ element: ai }">
-          <div v-if="ai.is_enabled && !ai.is_pinned && !ai.is_favorite" class="ai-card glass glass-hover" @click="openAI(ai)">
-            <div class="ai-icon">{{ ai.name[0] }}</div>
-            <span class="ai-name">{{ ai.name }}</span>
-            <div class="ai-actions">
-              <el-button text size="small" @click.stop="toggleFavorite(ai)">
-                <el-icon><Star /></el-icon>
-              </el-button>
-              <el-button text size="small" @click.stop="togglePin(ai)">
-                <el-icon><Top /></el-icon>
-              </el-button>
-              <el-button text size="small" @click.stop="openEdit(ai)">
-                <el-icon><Edit /></el-icon>
-              </el-button>
-              <el-button text size="small" @click.stop="handleDelete(ai)">
-                <el-icon><Delete /></el-icon>
-              </el-button>
-            </div>
+      <div class="ai-grid">
+        <div v-for="ai in sortedProviders" :key="ai.id" class="ai-card glass glass-hover" @click="openAI(ai)">
+          <div class="ai-icon">{{ ai.name[0] }}</div>
+          <span class="ai-name">{{ ai.name }}</span>
+          <div class="ai-actions">
+            <el-button text size="small" @click.stop="toggleFavorite(ai)">
+              <el-icon><Star /></el-icon>
+            </el-button>
+            <el-button text size="small" @click.stop="togglePin(ai)">
+              <el-icon><Top /></el-icon>
+            </el-button>
+            <el-button text size="small" @click.stop="openEdit(ai)">
+              <el-icon><Edit /></el-icon>
+            </el-button>
+            <el-button text size="small" @click.stop="handleDelete(ai)">
+              <el-icon><Delete /></el-icon>
+            </el-button>
           </div>
-        </template>
-      </draggable>
+        </div>
+      </div>
     </div>
 
     <!-- Recent -->

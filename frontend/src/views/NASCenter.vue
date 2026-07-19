@@ -14,37 +14,28 @@
       style="margin-bottom:20px"
     />
 
-    <draggable
-      v-model="sortedServices"
-      item-key="id"
-      :animation="200"
-      ghost-class="sortable-ghost"
-      @change="onDragChange"
-      class="svc-grid"
-    >
-      <template #item="{ element: svc }">
-        <div v-if="svc.is_enabled" class="nas-card glass glass-hover" @click="openService(svc)">
-          <div class="nas-icon">
-            <img v-if="svc.icon_url" :src="svc.icon_url" />
-            <span v-else class="nas-letter">{{ svc.name[0] }}</span>
-          </div>
-          <div class="nas-info">
-            <span class="nas-name">{{ svc.name }}</span>
-            <span class="nas-urls">
-              <span class="url-tag internal">内网 {{ svc.internal_url || '未设置' }}</span>
-              <span class="url-tag external">远程 {{ svc.external_url || '未设置' }}</span>
-            </span>
-            <span class="nas-status" :class="statusClass(svc)">
-              {{ svc._status || '点击检测' }}
-            </span>
-          </div>
-          <div class="nas-card-actions">
-            <el-button text size="small" @click.stop="openEdit(svc)"><el-icon><Edit /></el-icon></el-button>
-            <el-button text size="small" @click.stop="handleDelete(svc)"><el-icon><Delete /></el-icon></el-button>
-          </div>
+    <div class="svc-grid">
+      <div v-for="svc in sortedServices" :key="svc.id" class="nas-card glass glass-hover" @click="openService(svc)">
+        <div class="nas-icon">
+          <img v-if="svc.icon_url" :src="svc.icon_url" />
+          <span v-else class="nas-letter">{{ svc.name[0] }}</span>
         </div>
-      </template>
-    </draggable>
+        <div class="nas-info">
+          <span class="nas-name">{{ svc.name }}</span>
+          <span class="nas-urls">
+            <span class="url-tag internal">内网 {{ svc.internal_url || '未设置' }}</span>
+            <span class="url-tag external">远程 {{ svc.external_url || '未设置' }}</span>
+          </span>
+          <span class="nas-status" :class="statusClass(svc)">
+            {{ svc._status || '点击检测' }}
+          </span>
+        </div>
+        <div class="nas-card-actions">
+          <el-button text size="small" @click.stop="openEdit(svc)"><el-icon><Edit /></el-icon></el-button>
+          <el-button text size="small" @click.stop="handleDelete(svc)"><el-icon><Delete /></el-icon></el-button>
+        </div>
+      </div>
+    </div>
 
     <!-- Hidden -->
     <div v-if="hiddenServices.length" class="section">

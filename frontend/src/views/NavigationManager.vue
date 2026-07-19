@@ -25,35 +25,17 @@
 
     <!-- Categories -->
     <div v-loading="navigationStore.loading">
-      <!-- Drag categories -->
-      <draggable
-        v-model="sortedCategories"
-        item-key="id"
-        :animation="200"
-        ghost-class="sortable-ghost"
-        chosen-class="sortable-chosen"
-        handle=".cat-drag-handle"
-        @change="onCategoryDragChange"
-      >
-        <template #item="{ element: category, index }">
-          <div class="category-section animate-in">
-            <div class="category-header-row">
-              <div class="cat-drag-handle">
-                <el-icon size="16"><Rank /></el-icon>
-              </div>
-              <CategoryPanel
-                :category="category"
-                :websites="getFilteredWebsites(category.id)"
-                :index="index"
-                @add-website="(cat) => openAddWebsite(cat)"
-                @edit-category="(cat) => { editingCategory = cat; editCategoryForm.name = cat.name; editCategoryForm.icon = cat.icon; showEditCategory = true }"
-                @delete-category="handleDeleteCategory"
-                @refresh="refreshData"
-              />
-            </div>
-          </div>
-        </template>
-      </draggable>
+      <div v-for="(category, index) in sortedCategories" :key="category.id" class="category-section animate-in">
+        <CategoryPanel
+          :category="category"
+          :websites="getFilteredWebsites(category.id)"
+          :index="index"
+          @add-website="(cat) => openAddWebsite(cat)"
+          @edit-category="(cat) => { editingCategory = cat; editCategoryForm.name = cat.name; editCategoryForm.icon = cat.icon; showEditCategory = true }"
+          @delete-category="handleDeleteCategory"
+          @refresh="refreshData"
+        />
+      </div>
 
       <el-empty v-if="!navigationStore.categories.length" description="暂无分类，点击上方按钮添加" />
     </div>

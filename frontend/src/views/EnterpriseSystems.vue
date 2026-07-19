@@ -6,31 +6,28 @@
     </div>
 
     <div class="ent-grid-wrapper">
-      <draggable v-model="sortedSystems" item-key="id" :animation="200" ghost-class="sortable-ghost" @change="onDragChange" handle=".drag-handle" class="ent-grid">
-        <template #item="{ element: system }">
-          <div v-if="system.is_enabled" class="system-card glass glass-hover" @click="openSystem(system)">
-            <div class="drag-handle"><el-icon size="14"><Rank /></el-icon></div>
-            <div class="system-icon">
-              <img v-if="system.icon_url" :src="system.icon_url" />
-              <el-icon v-else size="24"><Platform /></el-icon>
-            </div>
-            <div class="system-info">
-              <span class="system-name">{{ system.name }}</span>
-              <span class="system-type">
-                <el-tag size="small">{{ typeLabel(system.system_type) }}</el-tag>
-              </span>
-              <span class="system-url">{{ system.url }}</span>
-            </div>
-            <div class="system-right">
-              <span class="visit-count">访问 {{ system.visit_count }} 次</span>
-              <div class="system-actions">
-                <el-button size="small" @click.stop="openEdit(system)"><el-icon><Edit /></el-icon></el-button>
-                <el-button size="small" type="danger" @click.stop="handleDelete(system)"><el-icon><Delete /></el-icon></el-button>
-              </div>
+      <div class="ent-grid">
+        <div v-for="system in sortedSystems" :key="system.id" class="system-card glass glass-hover" @click="openSystem(system)">
+          <div class="system-icon">
+            <img v-if="system.icon_url" :src="system.icon_url" />
+            <el-icon v-else size="24"><Platform /></el-icon>
+          </div>
+          <div class="system-info">
+            <span class="system-name">{{ system.name }}</span>
+            <span class="system-type">
+              <el-tag size="small">{{ typeLabel(system.system_type) }}</el-tag>
+            </span>
+            <span class="system-url">{{ system.url }}</span>
+          </div>
+          <div class="system-right">
+            <span class="visit-count">访问 {{ system.visit_count }} 次</span>
+            <div class="system-actions">
+              <el-button size="small" @click.stop="openEdit(system)"><el-icon><Edit /></el-icon></el-button>
+              <el-button size="small" type="danger" @click.stop="handleDelete(system)"><el-icon><Delete /></el-icon></el-button>
             </div>
           </div>
-        </template>
-      </draggable>
+        </div>
+      </div>
     </div>
 
     <!-- Hidden -->
