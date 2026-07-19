@@ -1,33 +1,36 @@
 <template>
-  <div class="category-panel">
+  <div class="category-panel" :style="{ animationDelay: animationDelay }">
+    <!-- Category Header -->
     <div class="category-header">
-      <div class="cat-title">
-        <el-icon size="16"><component :is="category.icon || 'Folder'" /></el-icon>
-        <span>{{ category.name }}</span>
-        <span class="cat-count">{{ websites.length }}</span>
-      </div>
-      <div class="cat-header-actions">
-        <el-button text size="small" @click="$emit('add-website', category)">
-          <el-icon><Plus /></el-icon>
-        </el-button>
-        <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd)">
-          <el-button text size="small">
-            <el-icon><MoreFilled /></el-icon>
+      <div class="cat-title-row">
+        <div class="cat-icon" :style="{ background: catColor }">
+          <el-icon size="18"><component :is="category.icon || 'Folder'" /></el-icon>
+        </div>
+        <div class="cat-info">
+          <span class="cat-name">{{ category.name }}</span>
+          <span class="cat-count">{{ websites.length }} 个网站</span>
+        </div>
+        <div class="cat-actions">
+          <el-button size="small" round @click="$emit('add-website', category)">
+            <el-icon><Plus /></el-icon> 添加
           </el-button>
-          <template #dropdown>
-            <el-dropdown-menu>
-              <el-dropdown-item command="edit">
-                <el-icon><Edit /></el-icon> 编辑分类
-              </el-dropdown-item>
-              <el-dropdown-item command="delete" divided>
-                <el-icon><Delete /></el-icon> 删除分类
-              </el-dropdown-item>
-            </el-dropdown-menu>
-          </template>
-        </el-dropdown>
+          <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd)">
+            <el-button size="small" round>
+              <el-icon><MoreFilled /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="edit"><el-icon><Edit /></el-icon> 编辑分类</el-dropdown-item>
+                <el-dropdown-item command="delete" divided><el-icon><Delete /></el-icon> 删除分类</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
       </div>
     </div>
-    <div :class="['websites-container', layoutMode]">
+
+    <!-- Website Cards Grid -->
+    <div class="websites-grid" v-if="websites.length">
       <draggable
         :list="websites"
         :group="{ name: 'websites', pull: true, put: true }"
@@ -37,58 +40,72 @@
         chosen-class="sortable-chosen"
         drag-class="sortable-drag"
         @change="onDragChange"
-        handle=".drag-handle"
+        class="drag-grid"
       >
         <template #item="{ element }">
-          <div class="website-item" @click="openWebsite(element)">
-            <div class="drag-handle" v-if="showDragHandle">
-              <el-icon size="14"><Rank /></el-icon>
-            </div>
-            <div class="icon-wrapper">
+          <div class="site-card" @click="openWebsite(element)">
+            <div class="site-icon-wrap">
               <img v-if="element.icon_url && !imgErrors[element.id]" :src="element.icon_url" @error="imgErrors[element.id] = true" />
-              <el-icon v-else><Link /></el-icon>
+              <span v-else class="site-fallback-icon">{{ element.name[0] }}</span>
             </div>
-            <div class="card-name">{{ element.name }}</div>
+            <div class="site-body">
+              <span class="site-name">{{ element.name }}</span>
+              <span class="site-sub" v-if="element.description">{{ truncate(element.description, 40) }}</span>
+              <span class="site-sub" v-else>{{ niceUrl(element.url) }}</span>
+            </div>
+            <div class="site-hover-btns">
+              <el-button text size="small" circle @click.stop="$emit('refresh')"><el-icon size="14"><Star v-if="!element.is_favorite" /><StarFilled v-else /></el-icon></el-button>
+            </div>
+            <div class="pin-badge" v-if="element.is_pinned">📌</div>
           </div>
         </template>
       </draggable>
+    </div>
+
+    <div v-else class="empty-category" @click="$emit('add-website', category)">
+      <el-icon size="28"><Plus /></el-icon>
+      <span>点击添加第一个网站</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, reactive } from 'vue'
-import { useSettingsStore } from '../stores/settings'
 import { useNavigationStore } from '../stores/navigation'
 import draggable from 'vuedraggable'
 
-const props = defineProps<{ category: any; websites: any[] }>()
-const emit = defineEmits(['add-website', 'refresh'])
-
-const settingsStore = useSettingsStore()
+const props = defineProps<{ category: any; websites: any[]; index?: number }>()
+const emit = defineEmits(['add-website', 'edit-category', 'delete-category', 'refresh'])
 const navigationStore = useNavigationStore()
 const imgErrors = reactive<Record<number, boolean>>({})
+const animationDelay = computed(() => `${(props.index || 0) * 0.06}s`)
 
-const layoutMode = computed(() => settingsStore.layoutMode)
-const showDragHandle = computed(() => settingsStore.layoutMode === 'list')
+const colors = [
+  'linear-gradient(135deg, #6c5ce7, #a29bfe)',
+  'linear-gradient(135deg, #00b894, #55efc4)',
+  'linear-gradient(135deg, #0984e3, #74b9ff)',
+  'linear-gradient(135deg, #e17055, #fab1a0)',
+  'linear-gradient(135deg, #fdcb6e, #ffeaa7)',
+  'linear-gradient(135deg, #fd79a8, #fab1a0)',
+  'linear-gradient(135deg, #636e72, #b2bec3)',
+  'linear-gradient(135deg, #6c5ce7, #fd79a8)',
+  'linear-gradient(135deg, #00cec9, #55efc4)',
+]
+const catColor = computed(() => colors[(props.index || 0) % colors.length])
 
 function handleCommand(cmd: string) {
   if (cmd === 'edit') emit('edit-category', props.category)
   else if (cmd === 'delete') emit('delete-category', props.category)
 }
-
-function openWebsite(web: any) {
-  navigationStore.recordVisit(web.id)
-  window.open(web.url, '_blank')
+function openWebsite(web: any) { navigationStore.recordVisit(web.id); window.open(web.url, '_blank') }
+function truncate(t: string, len: number) { return t && t.length > len ? t.slice(0, len) + '...' : (t || '') }
+function niceUrl(url: string) {
+  try { return new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace('www.', '') }
+  catch { return url.replace(/https?:\/\//, '').replace('www.', '').slice(0, 30) }
 }
-
 async function onDragChange(evt: any) {
   if (evt.moved || evt.added) {
-    const items = props.websites.map((w, i) => ({
-      id: w.id,
-      sort_order: i,
-      category_id: props.category.id,
-    }))
+    const items = props.websites.map((w, i) => ({ id: w.id, sort_order: i, category_id: props.category.id }))
     await navigationStore.reorderWebsites(items)
     emit('refresh')
   }
@@ -97,131 +114,66 @@ async function onDragChange(evt: any) {
 
 <style scoped>
 .category-panel {
-  margin-bottom: 24px;
+  animation: fadeSlideIn 0.5s ease forwards;
+  animation-delay: v-bind(animationDelay);
+  opacity: 0;
+  margin-bottom: 28px;
 }
-.category-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 8px 4px 12px;
-}
-.cat-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 16px;
-  font-weight: 700;
-}
-.cat-count {
-  background: var(--bg-primary);
-  padding: 0 8px;
-  border-radius: 10px;
-  font-size: 12px;
-  color: var(--text-muted);
-  font-weight: 500;
-}
-.cat-header-actions {
-  display: flex;
-  gap: 4px;
-}
-.websites-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-  gap: 12px;
-}
-.websites-container.list {
-  grid-template-columns: 1fr;
-  gap: 6px;
-}
-.websites-container.desktop {
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 20px;
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
-.website-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 10px;
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all var(--transition);
-  background: var(--bg-glass);
+.category-header { margin-bottom: 14px; }
+.cat-title-row { display: flex; align-items: center; gap: 12px; }
+.cat-icon { width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: white; flex-shrink: 0; }
+.cat-info { flex: 1; }
+.cat-name { font-size: 17px; font-weight: 800; display: block; line-height: 1.2; }
+.cat-count { font-size: 12px; color: var(--text-muted); font-weight: 400; }
+.cat-actions { display: flex; gap: 4px; }
+
+.drag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; min-height: 20px; }
+
+.site-card {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 16px; border-radius: 14px;
+  background: var(--bg-glass); backdrop-filter: blur(10px);
   border: 1px solid var(--border-color);
-  position: relative;
+  cursor: pointer; position: relative; overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.website-item:hover {
-  transform: translateY(-3px);
-  box-shadow: var(--shadow-md);
+.site-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
   border-color: var(--accent-light);
 }
-.websites-container.list .website-item {
-  flex-direction: row;
-  padding: 10px 14px;
-  gap: 12px;
-}
-.website-item .icon-wrapper {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 8px;
-  font-size: 20px;
-  background: var(--accent-gradient);
-  color: white;
-  flex-shrink: 0;
-}
-.websites-container.list .website-item .icon-wrapper {
-  width: 32px;
-  height: 32px;
-  margin-bottom: 0;
-  font-size: 16px;
-  border-radius: 6px;
-}
-.website-item .icon-wrapper img {
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
-}
-.website-item .card-name {
-  font-size: 13px;
-  text-align: center;
-  line-height: 1.3;
-  word-break: break-all;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.websites-container.list .website-item .card-name {
-  font-size: 14px;
-  text-align: left;
-  -webkit-line-clamp: 1;
-}
+.site-card:hover .site-hover-btns { opacity: 1; transform: translateX(0); }
 
-.drag-handle {
-  cursor: grab;
-  color: var(--text-muted);
-  flex-shrink: 0;
+.site-icon-wrap {
+  width: 44px; height: 44px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; background: var(--bg-primary); overflow: hidden;
 }
-.drag-handle:active {
-  cursor: grabbing;
-}
+.site-icon-wrap img { width: 28px; height: 28px; border-radius: 6px; object-fit: contain; }
+.site-fallback-icon { font-size: 20px; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
 
-@media (max-width: 768px) {
-  .websites-container {
-    grid-template-columns: repeat(auto-fill, minmax(85px, 1fr));
-    gap: 8px;
-  }
-  .website-item {
-    padding: 12px 6px;
-  }
-  .website-item .icon-wrapper {
-    width: 36px;
-    height: 36px;
-    font-size: 18px;
-  }
+.site-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.site-name { font-size: 14px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.site-sub { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.site-hover-btns { position: absolute; right: 8px; top: 8px; opacity: 0; transform: translateX(4px); transition: all 0.2s ease; }
+.pin-badge { position: absolute; left: 8px; top: -2px; font-size: 12px; }
+
+.empty-category {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 24px; border-radius: 14px; border: 2px dashed var(--border-color);
+  cursor: pointer; color: var(--text-muted); font-size: 14px; transition: all 0.2s;
 }
+.empty-category:hover { border-color: var(--accent-light); color: var(--accent); background: var(--bg-primary); }
+
+.sortable-ghost { opacity: 0.3; border: 2px dashed var(--accent) !important; }
+.sortable-chosen { box-shadow: 0 12px 32px rgba(0,0,0,0.15) !important; z-index: 100; }
+
+@media (max-width: 768px) { .drag-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; } .site-card { padding: 12px 14px; } .site-icon-wrap { width: 38px; height: 38px; } }
+@media (max-width: 480px) { .drag-grid { grid-template-columns: 1fr 1fr; } }
 </style>

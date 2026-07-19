@@ -35,7 +35,7 @@
         handle=".cat-drag-handle"
         @change="onCategoryDragChange"
       >
-        <template #item="{ element: category }">
+        <template #item="{ element: category, index }">
           <div class="category-section animate-in">
             <div class="category-header-row">
               <div class="cat-drag-handle">
@@ -44,7 +44,8 @@
               <CategoryPanel
                 :category="category"
                 :websites="getFilteredWebsites(category.id)"
-                @add-website="openAddWebsite(category)"
+                :index="index"
+                @add-website="(cat) => openAddWebsite(cat)"
                 @edit-category="(cat) => { editingCategory = cat; editCategoryForm.name = cat.name; editCategoryForm.icon = cat.icon; showEditCategory = true }"
                 @delete-category="handleDeleteCategory"
                 @refresh="refreshData"
