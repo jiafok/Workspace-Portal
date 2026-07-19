@@ -1,6 +1,5 @@
 <template>
   <div class="category-panel" :style="{ animationDelay: animationDelay }">
-    <!-- Category Header -->
     <div class="category-header">
       <div class="cat-title-row">
         <div class="cat-icon" :style="{ background: catColor }">
@@ -13,7 +12,8 @@
         <div class="cat-actions">
           <el-button size="small" round @click="$emit('add-website', category)">
             <el-icon><Plus /></el-icon> 添加
-          </el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd)">
+          </el-button>
+          <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd)">
             <el-button size="small" round>
               <el-icon><MoreFilled /></el-icon>
             </el-button>
@@ -28,7 +28,6 @@
       </div>
     </div>
 
-    <!-- Website Cards Grid -->
     <draggable
       v-if="websites.length"
       :list="websites"
@@ -39,7 +38,7 @@
       chosen-class="sortable-chosen"
       drag-class="sortable-drag"
       @change="onDragChange"
-      class="websites-grid"
+      class="card-grid"
     >
       <template #item="{ element }">
         <div class="site-card" @click="openWebsite(element)">
@@ -49,13 +48,9 @@
           </div>
           <div class="site-body">
             <span class="site-name">{{ element.name }}</span>
-            <span class="site-sub" v-if="element.description">{{ truncate(element.description, 40) }}</span>
-            <span class="site-sub" v-else>{{ niceUrl(element.url) }}</span>
+            <span class="site-sub">{{ element.description ? truncate(element.description, 40) : niceUrl(element.url) }}</span>
           </div>
-          <div class="site-hover-btns">
-            <el-button text size="small" circle @click.stop="$emit('refresh')"><el-icon size="14"><Star v-if="!element.is_favorite" /><StarFilled v-else /></el-icon></el-button>
-          </div>
-          <div class="pin-badge" v-if="element.is_pinned">📌</div>
+          <div v-if="element.is_pinned" class="pin-badge">📌</div>
         </div>
       </template>
     </draggable>
@@ -68,7 +63,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, reactive } from 'vue'
+import { computed, reactive } from 'vue'
 import { useNavigationStore } from '../stores/navigation'
 import draggable from 'vuedraggable'
 
@@ -76,35 +71,21 @@ const props = defineProps<{ category: any; websites: any[]; index?: number }>()
 const emit = defineEmits(['add-website', 'edit-category', 'delete-category', 'refresh'])
 const navigationStore = useNavigationStore()
 const imgErrors = reactive<Record<number, boolean>>({})
+
 const animationDelay = computed(() => `${(props.index || 0) * 0.06}s`)
+const catColor = computed(() => {
+  const colors = ['linear-gradient(135deg,#6c5ce7,#a29bfe)','linear-gradient(135deg,#00b894,#55efc4)','linear-gradient(135deg,#0984e3,#74b9ff)','linear-gradient(135deg,#e17055,#fab1a0)','linear-gradient(135deg,#fdcb6e,#ffeaa7)','linear-gradient(135deg,#fd79a8,#fab1a0)','linear-gradient(135deg,#636e72,#b2bec3)','linear-gradient(135deg,#6c5ce7,#fd79a8)','linear-gradient(135deg,#00cec9,#55efc4)']
+  return colors[(props.index || 0) % colors.length]
+})
 
-const colors = [
-  'linear-gradient(135deg, #6c5ce7, #a29bfe)',
-  'linear-gradient(135deg, #00b894, #55efc4)',
-  'linear-gradient(135deg, #0984e3, #74b9ff)',
-  'linear-gradient(135deg, #e17055, #fab1a0)',
-  'linear-gradient(135deg, #fdcb6e, #ffeaa7)',
-  'linear-gradient(135deg, #fd79a8, #fab1a0)',
-  'linear-gradient(135deg, #636e72, #b2bec3)',
-  'linear-gradient(135deg, #6c5ce7, #fd79a8)',
-  'linear-gradient(135deg, #00cec9, #55efc4)',
-]
-const catColor = computed(() => colors[(props.index || 0) % colors.length])
-
-function handleCommand(cmd: string) {
-  if (cmd === 'edit') emit('edit-category', props.category)
-  else if (cmd === 'delete') emit('delete-category', props.category)
-}
+function handleCommand(cmd: string) { cmd === 'edit' ? emit('edit-category', props.category) : emit('delete-category', props.category) }
 function openWebsite(web: any) { navigationStore.recordVisit(web.id); window.open(web.url, '_blank') }
-function truncate(t: string, len: number) { return t && t.length > len ? t.slice(0, len) + '...' : (t || '') }
-function niceUrl(url: string) {
-  try { return new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace('www.', '') }
-  catch { return url.replace(/https?:\/\//, '').replace('www.', '').slice(0, 30) }
-}
+function truncate(t: string, n: number) { return t && t.length > n ? t.slice(0, n) + '...' : (t || '') }
+function niceUrl(url: string) { try { return new URL(url.startsWith('http') ? url : 'https://' + url).hostname.replace('www.', '') } catch { return url.replace(/https?:\/\//, '').replace('www.', '').slice(0, 30) } }
+
 async function onDragChange(evt: any) {
   if (evt.moved || evt.added) {
-    const items = props.websites.map((w, i) => ({ id: w.id, sort_order: i, category_id: props.category.id }))
-    await navigationStore.reorderWebsites(items)
+    await navigationStore.reorderWebsites(props.websites.map((w, i) => ({ id: w.id, sort_order: i, category_id: props.category.id })))
     emit('refresh')
   }
 }
@@ -130,6 +111,14 @@ async function onDragChange(evt: any) {
 .cat-count { font-size: 12px; color: var(--text-muted); font-weight: 400; }
 .cat-actions { display: flex; gap: 4px; }
 
+/* ---- GRID LAYOUT ---- */
+.card-grid {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)) !important;
+  gap: 10px;
+}
+.card-grid > div { display: contents !important; }
+
 .site-card {
   display: flex; align-items: center; gap: 12px;
   padding: 14px 16px; border-radius: 14px;
@@ -138,38 +127,22 @@ async function onDragChange(evt: any) {
   cursor: pointer; position: relative; overflow: hidden;
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
-.site-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-  border-color: var(--accent-light);
-}
-.site-card:hover .site-hover-btns { opacity: 1; transform: translateX(0); }
+.site-card:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); border-color: var(--accent-light); }
 
-.site-icon-wrap {
-  width: 44px; height: 44px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  flex-shrink: 0; background: var(--bg-primary); overflow: hidden;
-}
+.site-icon-wrap { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; background: var(--bg-primary); overflow: hidden; }
 .site-icon-wrap img { width: 28px; height: 28px; border-radius: 6px; object-fit: contain; }
 .site-fallback-icon { font-size: 20px; font-weight: 800; background: var(--accent-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-
 .site-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .site-name { font-size: 14px; font-weight: 600; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .site-sub { font-size: 11px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.site-hover-btns { position: absolute; right: 8px; top: 8px; opacity: 0; transform: translateX(4px); transition: all 0.2s ease; }
 .pin-badge { position: absolute; left: 8px; top: -2px; font-size: 12px; }
 
-.empty-category {
-  display: flex; align-items: center; justify-content: center; gap: 8px;
-  padding: 24px; border-radius: 14px; border: 2px dashed var(--border-color);
-  cursor: pointer; color: var(--text-muted); font-size: 14px; transition: all 0.2s;
-}
+.empty-category { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 24px; border-radius: 14px; border: 2px dashed var(--border-color); cursor: pointer; color: var(--text-muted); font-size: 14px; transition: all 0.2s; }
 .empty-category:hover { border-color: var(--accent-light); color: var(--accent); background: var(--bg-primary); }
 
 .sortable-ghost { opacity: 0.3; border: 2px dashed var(--accent) !important; }
 .sortable-chosen { box-shadow: 0 12px 32px rgba(0,0,0,0.15) !important; z-index: 100; }
 
-@media (max-width: 768px) { .websites-grid :deep(> div) { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; } .site-card { padding: 12px 14px; } .site-icon-wrap { width: 38px; height: 38px; } }
-@media (max-width: 480px) { .websites-grid :deep(> div) { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 768px) { .card-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)) !important; } .site-card { padding: 12px 14px; } .site-icon-wrap { width: 38px; height: 38px; } }
+@media (max-width: 480px) { .card-grid { grid-template-columns: 1fr 1fr !important; } }
 </style>
