@@ -1,27 +1,14 @@
 version: '3.8'
 
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: workspace-portal-backend
+  workspace-portal:
+    build: .
+    container_name: workspace-portal
     ports:
-      - "8000:8000"
+      - "6066:6066"
     volumes:
       - ./data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - TZ=Asia/Shanghai
-    restart: unless-stopped
-
-  frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-    container_name: workspace-portal-frontend
-    ports:
-      - "6066:80"
-    depends_on:
-      - backend
     restart: unless-stopped

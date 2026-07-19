@@ -99,21 +99,20 @@
 
 ## 🚀 快速部署
 
-### 方式一：Docker 镜像拉取（无需 Clone 代码）
+### 方式一：Docker 一键部署（无需 Clone 代码）
 
 ```bash
-# 1. 创建目录和数据文件夹
+# 1. 创建目录
 mkdir workspace-portal && cd workspace-portal
-mkdir data
 
 # 2. 下载 docker-compose 文件
 curl -O https://raw.githubusercontent.com/jiafok/Workspace-Portal/main/docker-compose.pull.yml
 
-# 3. 一键启动（自动拉取预构建镜像）
+# 3. 一键启动（单容器，自动拉取预构建镜像）
 docker-compose -f docker-compose.pull.yml up -d
 ```
 
-**访问：** `http://localhost:8080`  |  账号：`admin` / `admin123`
+**访问：** `http://localhost:6066`  |  账号：`admin` / `admin123`
 
 ### 方式二：Docker Compose 本地构建
 
@@ -122,11 +121,11 @@ docker-compose -f docker-compose.pull.yml up -d
 git clone https://github.com/jiafok/Workspace-Portal.git
 cd Workspace-Portal
 
-# 一键启动（本地构建 Docker 镜像）
+# 一键启动（单容器，本地构建）
 docker-compose up -d
 ```
 
-**访问：** `http://localhost:8080`  |  API：`http://localhost:8000/docs`
+**访问：** `http://localhost:6066`
 
 ### 方式三：开发环境
 
