@@ -99,36 +99,34 @@
 
 ## 🚀 快速部署
 
-### 方式一：Docker Compose（推荐）
+### 方式一：Docker 镜像拉取（无需 Clone 代码）
+
+```bash
+# 1. 创建目录和数据文件夹
+mkdir workspace-portal && cd workspace-portal
+mkdir data
+
+# 2. 下载 docker-compose 文件
+curl -O https://raw.githubusercontent.com/jiafok/Workspace-Portal/main/docker-compose.pull.yml
+
+# 3. 一键启动（自动拉取预构建镜像）
+docker-compose -f docker-compose.pull.yml up -d
+```
+
+**访问：** `http://localhost:8080`  |  账号：`admin` / `admin123`
+
+### 方式二：Docker Compose 本地构建
 
 ```bash
 # 克隆项目
-git clone https://github.com/YOUR_USERNAME/workspace-portal.git
-cd workspace-portal
+git clone https://github.com/jiafok/Workspace-Portal.git
+cd Workspace-Portal
 
-# 一键启动
+# 一键启动（本地构建 Docker 镜像）
 docker-compose up -d
 ```
 
-**访问：**
-- 前端：`http://localhost:8080`
-- API 文档：`http://localhost:8000/docs`
-
-### 方式二：Docker Run
-
-```bash
-# 后端
-docker run -d --name wp-backend \
-  -p 8000:8000 \
-  -v $(pwd)/data:/app/data \
-  -v /var/run/docker.sock:/var/run/docker.sock:ro \
-  yourusername/workspace-portal-backend:latest
-
-# 前端
-docker run -d --name wp-frontend \
-  -p 8080:80 \
-  yourusername/workspace-portal-frontend:latest
-```
+**访问：** `http://localhost:8080`  |  API：`http://localhost:8000/docs`
 
 ### 方式三：开发环境
 

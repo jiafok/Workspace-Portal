@@ -1,0 +1,28 @@
+# 使用预构建镜像快速部署（无需 clone 全部代码）
+# 适用于只想快速运行的用户
+# docker-compose -f docker-compose.pull.yml up -d
+
+# 如果本地没有 docker-compose.yml，需要先创建 data 目录：
+# mkdir data
+
+services:
+  backend:
+    image: ghcr.io/jiafok/workspace-portal-backend:latest
+    container_name: workspace-portal-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - TZ=Asia/Shanghai
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/jiafok/workspace-portal-frontend:latest
+    container_name: workspace-portal-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
