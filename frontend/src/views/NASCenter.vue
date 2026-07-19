@@ -20,6 +20,7 @@
       :animation="200"
       ghost-class="sortable-ghost"
       @change="onDragChange"
+      class="svc-grid"
     >
       <template #item="{ element: svc }">
         <div v-if="svc.is_enabled" class="nas-card glass glass-hover" @click="openService(svc)">
@@ -303,4 +304,10 @@ onMounted(fetchData)
   font-size: 11px;
   color: var(--text-muted);
 }
+.svc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 10px;
+}
+.svc-grid > div { display: contents; }
 </style>

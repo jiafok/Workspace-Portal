@@ -5,31 +5,33 @@
       <el-button type="primary" @click="openCreate"><el-icon><Plus /></el-icon> 添加系统</el-button>
     </div>
 
-    <draggable v-model="sortedSystems" item-key="id" :animation="200" ghost-class="sortable-ghost" @change="onDragChange" handle=".drag-handle">
-      <template #item="{ element: system }">
-        <div v-if="system.is_enabled" class="system-card glass glass-hover" @click="openSystem(system)">
-          <div class="drag-handle"><el-icon size="14"><Rank /></el-icon></div>
-          <div class="system-icon">
-            <img v-if="system.icon_url" :src="system.icon_url" />
-            <el-icon v-else size="24"><Platform /></el-icon>
-          </div>
-          <div class="system-info">
-            <span class="system-name">{{ system.name }}</span>
-            <span class="system-type">
-              <el-tag size="small">{{ typeLabel(system.system_type) }}</el-tag>
-            </span>
-            <span class="system-url">{{ system.url }}</span>
-          </div>
-          <div class="system-right">
-            <span class="visit-count">访问 {{ system.visit_count }} 次</span>
-            <div class="system-actions">
-              <el-button size="small" @click.stop="openEdit(system)"><el-icon><Edit /></el-icon></el-button>
-              <el-button size="small" type="danger" @click.stop="handleDelete(system)"><el-icon><Delete /></el-icon></el-button>
+    <div class="ent-grid-wrapper">
+      <draggable v-model="sortedSystems" item-key="id" :animation="200" ghost-class="sortable-ghost" @change="onDragChange" handle=".drag-handle" class="ent-grid">
+        <template #item="{ element: system }">
+          <div v-if="system.is_enabled" class="system-card glass glass-hover" @click="openSystem(system)">
+            <div class="drag-handle"><el-icon size="14"><Rank /></el-icon></div>
+            <div class="system-icon">
+              <img v-if="system.icon_url" :src="system.icon_url" />
+              <el-icon v-else size="24"><Platform /></el-icon>
+            </div>
+            <div class="system-info">
+              <span class="system-name">{{ system.name }}</span>
+              <span class="system-type">
+                <el-tag size="small">{{ typeLabel(system.system_type) }}</el-tag>
+              </span>
+              <span class="system-url">{{ system.url }}</span>
+            </div>
+            <div class="system-right">
+              <span class="visit-count">访问 {{ system.visit_count }} 次</span>
+              <div class="system-actions">
+                <el-button size="small" @click.stop="openEdit(system)"><el-icon><Edit /></el-icon></el-button>
+                <el-button size="small" type="danger" @click.stop="handleDelete(system)"><el-icon><Delete /></el-icon></el-button>
+              </div>
             </div>
           </div>
-        </div>
-      </template>
-    </draggable>
+        </template>
+      </draggable>
+    </div>
 
     <!-- Hidden -->
     <div v-if="hiddenSystems.length" class="mt-4">
@@ -145,4 +147,10 @@ onMounted(fetchData)
 .system-card:hover .system-actions { opacity: 1; }
 .hidden-chip { padding: 4px 12px; background: var(--bg-primary); border-radius: 20px; font-size: 12px; cursor: pointer; opacity: 0.6; }
 .hidden-chip:hover { opacity: 1; }
+.ent-grid-wrapper .ent-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 8px;
+}
+.ent-grid-wrapper .ent-grid > div { display: contents; }
 </style>

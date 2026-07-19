@@ -10,7 +10,7 @@ services:
     image: ghcr.io/jiafok/workspace-portal-backend:latest
     container_name: workspace-portal-backend
     ports:
-      - "8000:8000"
+      - "6066:8000"
     volumes:
       - ./data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -22,7 +22,7 @@ services:
     image: ghcr.io/jiafok/workspace-portal-frontend:latest
     container_name: workspace-portal-frontend
     ports:
-      - "8080:80"
+      - "6066:80"
     depends_on:
       - backend
     restart: unless-stopped

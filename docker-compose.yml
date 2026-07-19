@@ -21,7 +21,7 @@ services:
       dockerfile: Dockerfile
     container_name: workspace-portal-frontend
     ports:
-      - "8080:80"
+      - "6066:80"
     depends_on:
       - backend
     restart: unless-stopped

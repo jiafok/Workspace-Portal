@@ -13,8 +13,7 @@
         <div class="cat-actions">
           <el-button size="small" round @click="$emit('add-website', category)">
             <el-icon><Plus /></el-icon> 添加
-          </el-button>
-          <el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd)">
+          </el-dropdown trigger="click" @command="(cmd: string) => handleCommand(cmd)">
             <el-button size="small" round>
               <el-icon><MoreFilled /></el-icon>
             </el-button>
@@ -30,36 +29,36 @@
     </div>
 
     <!-- Website Cards Grid -->
-    <div v-if="websites.length" class="websites-grid">
-      <draggable
-        :list="websites"
-        :group="{ name: 'websites', pull: true, put: true }"
-        item-key="id"
-        :animation="200"
-        ghost-class="sortable-ghost"
-        chosen-class="sortable-chosen"
-        drag-class="sortable-drag"
-        @change="onDragChange"
-      >
-        <template #item="{ element }">
-          <div class="site-card" @click="openWebsite(element)">
-            <div class="site-icon-wrap">
-              <img v-if="element.icon_url && !imgErrors[element.id]" :src="element.icon_url" @error="imgErrors[element.id] = true" />
-              <span v-else class="site-fallback-icon">{{ element.name[0] }}</span>
-            </div>
-            <div class="site-body">
-              <span class="site-name">{{ element.name }}</span>
-              <span class="site-sub" v-if="element.description">{{ truncate(element.description, 40) }}</span>
-              <span class="site-sub" v-else>{{ niceUrl(element.url) }}</span>
-            </div>
-            <div class="site-hover-btns">
-              <el-button text size="small" circle @click.stop="$emit('refresh')"><el-icon size="14"><Star v-if="!element.is_favorite" /><StarFilled v-else /></el-icon></el-button>
-            </div>
-            <div class="pin-badge" v-if="element.is_pinned">📌</div>
+    <draggable
+      v-if="websites.length"
+      :list="websites"
+      :group="{ name: 'websites', pull: true, put: true }"
+      item-key="id"
+      :animation="200"
+      ghost-class="sortable-ghost"
+      chosen-class="sortable-chosen"
+      drag-class="sortable-drag"
+      @change="onDragChange"
+      class="websites-grid"
+    >
+      <template #item="{ element }">
+        <div class="site-card" @click="openWebsite(element)">
+          <div class="site-icon-wrap">
+            <img v-if="element.icon_url && !imgErrors[element.id]" :src="element.icon_url" @error="imgErrors[element.id] = true" />
+            <span v-else class="site-fallback-icon">{{ element.name[0] }}</span>
           </div>
-        </template>
-      </draggable>
-    </div>
+          <div class="site-body">
+            <span class="site-name">{{ element.name }}</span>
+            <span class="site-sub" v-if="element.description">{{ truncate(element.description, 40) }}</span>
+            <span class="site-sub" v-else>{{ niceUrl(element.url) }}</span>
+          </div>
+          <div class="site-hover-btns">
+            <el-button text size="small" circle @click.stop="$emit('refresh')"><el-icon size="14"><Star v-if="!element.is_favorite" /><StarFilled v-else /></el-icon></el-button>
+          </div>
+          <div class="pin-badge" v-if="element.is_pinned">📌</div>
+        </div>
+      </template>
+    </draggable>
 
     <div v-else class="empty-category" @click="$emit('add-website', category)">
       <el-icon size="28"><Plus /></el-icon>
