@@ -30,7 +30,7 @@
     </div>
 
     <!-- Website Cards Grid -->
-    <div class="websites-grid" v-if="websites.length">
+    <div v-if="websites.length" class="websites-grid">
       <draggable
         :list="websites"
         :group="{ name: 'websites', pull: true, put: true }"
@@ -40,7 +40,6 @@
         chosen-class="sortable-chosen"
         drag-class="sortable-drag"
         @change="onDragChange"
-        class="drag-grid"
       >
         <template #item="{ element }">
           <div class="site-card" @click="openWebsite(element)">
@@ -132,8 +131,6 @@ async function onDragChange(evt: any) {
 .cat-count { font-size: 12px; color: var(--text-muted); font-weight: 400; }
 .cat-actions { display: flex; gap: 4px; }
 
-.drag-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; min-height: 20px; }
-
 .site-card {
   display: flex; align-items: center; gap: 12px;
   padding: 14px 16px; border-radius: 14px;
@@ -174,6 +171,6 @@ async function onDragChange(evt: any) {
 .sortable-ghost { opacity: 0.3; border: 2px dashed var(--accent) !important; }
 .sortable-chosen { box-shadow: 0 12px 32px rgba(0,0,0,0.15) !important; z-index: 100; }
 
-@media (max-width: 768px) { .drag-grid { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; } .site-card { padding: 12px 14px; } .site-icon-wrap { width: 38px; height: 38px; } }
-@media (max-width: 480px) { .drag-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 768px) { .websites-grid :deep(> div) { grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; } .site-card { padding: 12px 14px; } .site-icon-wrap { width: 38px; height: 38px; } }
+@media (max-width: 480px) { .websites-grid :deep(> div) { grid-template-columns: 1fr 1fr; } }
 </style>
