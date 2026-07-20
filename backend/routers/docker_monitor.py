@@ -227,7 +227,8 @@ def get_containers(db: Session = Depends(get_db)):
     if not client:
         return db.query(ContainerInfo).all()
 
-    # ── Step 1: Fetch ALL Docker data OUTSIDE any DB transaction ──
+    # Return live container data directly (Portainer-like behavior).
+    # Avoid writing to SQLite here to prevent lock contention on NAS.
     raw_data: list[dict] = []
     try:
         if isinstance(client, DockerClient):
@@ -287,27 +288,7 @@ def get_containers(db: Session = Depends(get_db)):
         print(f"[docker] Failed to fetch container data: {e}")
         return db.query(ContainerInfo).all()
 
-    # ── Step 2: Quick DB write (short lock) ──
-    try:
-        for d in raw_data:
-            existing = db.query(ContainerInfo).filter(
-                ContainerInfo.container_id == d["container_id"]
-            ).first()
-            if existing:
-                for k, v in d.items():
-                    setattr(existing, k, v)
-                existing.last_updated = datetime.datetime.utcnow()
-            else:
-                obj = ContainerInfo(**d)
-                obj.last_updated = datetime.datetime.utcnow()
-                db.add(obj)
-        db.commit()
-    except Exception as e:
-        db.rollback()
-        print(f"[docker] DB write error: {e}")
-        return db.query(ContainerInfo).all()
-
-    return db.query(ContainerInfo).all()
+    return raw_data
 
 
 def _do_container_action(container_id: str, action: str):
