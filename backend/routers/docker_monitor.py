@@ -13,15 +13,24 @@ router = APIRouter(prefix="/api/docker", tags=["docker"])
 
 def get_docker_client():
     try:
-        socket_path = "/var/run/docker.sock"
-        if os.path.exists(socket_path):
-            return docker.DockerClient(base_url=f"unix://{socket_path}")
-        # Windows Docker Desktop
-        import subprocess
-
-        result = subprocess.run(["docker", "info"], capture_output=True, timeout=5)
-        if result.returncode == 0:
-            return docker.from_env()
+        # Try Unix socket (multiple paths)
+        socket_paths = ["/var/run/docker.sock", "/run/docker.sock"]
+        for socket_path in socket_paths:
+            if os.path.exists(socket_path):
+                try:
+                    client = docker.DockerClient(base_url=f"unix://{socket_path}")
+                    client.ping()
+                    return client
+                except Exception as e:
+                    print(f"Failed to connect to {socket_path}: {e}")
+                    continue
+        # Windows Docker Desktop or remote Docker
+        try:
+            client = docker.from_env()
+            client.ping()
+            return client
+        except Exception as e:
+            print(f"Failed to connect via from_env: {e}")
     except Exception as e:
         print(f"Docker client error: {e}")
     return None

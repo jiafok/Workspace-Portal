@@ -170,7 +170,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  min-height: 100vh;
+  overflow: hidden;
 }
 
 .top-bar {
@@ -178,10 +178,10 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   padding: 10px 20px;
-  margin: 12px 16px 0;
-  position: sticky;
-  top: 12px;
-  z-index: 50;
+  flex-shrink: 0;
+  flex-wrap: nowrap;
+  background: var(--bg-glass);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .top-left {
@@ -259,6 +259,8 @@ kbd {
   flex: 1;
   padding: 16px 16px 40px;
   overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
 }
 
 .fade-enter-active, .fade-leave-active {

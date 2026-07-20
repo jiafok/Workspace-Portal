@@ -35,7 +35,7 @@
     </div>
 
     <!-- Config Dialog -->
-    <el-dialog v-model="showConfig" :title="`配置 - ${configPlugin?.name}`" width="520px">
+    <el-dialog v-model="showConfig" :title="`配置 - ${configPlugin?.name}`" width="520px" @close="configPlugin = null">
       <el-form v-if="configPlugin" label-position="top">
         <el-form-item v-for="(_, key) in configData" :key="key" :label="key">
           <el-input v-if="key !== 'password' && key !== 'access_token' && key !== 'api_key'"
@@ -94,16 +94,34 @@ async function togglePlugin(p: Plugin, v: boolean) {
 
 function openConfig(p: Plugin) {
   configPlugin.value = p
-  // 清空旧的 key
+  // 清空所有旧的 keys
   Object.keys(configData).forEach(k => delete configData[k])
-  try {
-    const schema = JSON.parse(p.config_schema)
-    Object.keys(schema).forEach(k => { configData[k] = schema[k] || '' })
-  } catch { /* schema not JSON */ }
-  try {
-    const data = JSON.parse(p.config_data)
-    Object.keys(data).forEach(k => { configData[k] = data[k] })
-  } catch { /* no data yet */ }
+  // 从 schema 读取 defaults
+  if (p.config_schema && p.config_schema.trim()) {
+    try {
+      const schema = JSON.parse(p.config_schema)
+      if (typeof schema === 'object') {
+        Object.entries(schema).forEach(([k, v]) => {
+          configData[k] = v || ''
+        })
+      }
+    } catch (e) {
+      console.error('Failed to parse config_schema:', e)
+    }
+  }
+  // 从 config_data 覆盖
+  if (p.config_data && p.config_data.trim()) {
+    try {
+      const data = JSON.parse(p.config_data)
+      if (typeof data === 'object') {
+        Object.entries(data).forEach(([k, v]) => {
+          configData[k] = v || ''
+        })
+      }
+    } catch (e) {
+      console.error('Failed to parse config_data:', e)
+    }
+  }
   showConfig.value = true
 }
 
