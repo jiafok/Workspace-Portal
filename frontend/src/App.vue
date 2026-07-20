@@ -151,6 +151,7 @@ onMounted(async () => {
 .app-container {
   display: flex;
   min-height: 100vh;
+  height: 100vh;
 }
 .app-container.sidebar {
   padding-left: 260px;
@@ -170,7 +171,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   min-width: 0;
-  overflow: hidden;
+  height: 100%;
 }
 
 .top-bar {
