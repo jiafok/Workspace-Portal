@@ -13,10 +13,17 @@ router = APIRouter(prefix="/api/docker", tags=["docker"])
 
 def get_docker_client():
     try:
-        if os.path.exists("/var/run/docker.sock"):
-            return docker.DockerClient(base_url="unix://var/run/docker.sock")
-    except Exception:
-        pass
+        socket_path = "/var/run/docker.sock"
+        if os.path.exists(socket_path):
+            return docker.DockerClient(base_url=f"unix://{socket_path}")
+        # Windows Docker Desktop
+        import subprocess
+
+        result = subprocess.run(["docker", "info"], capture_output=True, timeout=5)
+        if result.returncode == 0:
+            return docker.from_env()
+    except Exception as e:
+        print(f"Docker client error: {e}")
     return None
 
 

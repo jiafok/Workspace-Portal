@@ -36,7 +36,7 @@
     </div>
     <div v-else class="cat-empty" @click="$emit('addWebsite', category)">
       <el-icon size="28"><Plus /></el-icon>
-      <span>点击添加第一个网站</span>
+      <span>暂无网站，点击添加</span>
     </div>
   </div>
 </template>
@@ -71,7 +71,6 @@ function shortUrl(u: string) {
 .cat-name { font-size: 18px; font-weight: 800; display: block; line-height: 1.3; }
 .cat-count { font-size: 12px; color: var(--text-muted); }
 .cat-btns { display: flex; gap: 4px; }
-/* === GRID LAYOUT === */
 .site-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
 .site-card { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 16px; cursor: pointer; position: relative; transition: all 0.25s ease; }
 .site-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.12); border-color: var(--accent-light) !important; }

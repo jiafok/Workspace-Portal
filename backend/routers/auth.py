@@ -147,6 +147,34 @@ def toggle_user_active(user_id: int, active: dict, current_user: User = Depends(
     return {"ok": True}
 
 
+@router.put("/users/{user_id}/password")
+def change_user_password(user_id: int, data: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Change password. Users can change own; admins can change others."""
+    if current_user.id != user_id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Can only change own password")
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    new_pw = data.get("password", "")
+    if len(new_pw) < 6:
+        raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+    user.hashed_password = hash_password(new_pw)
+    db.commit()
+    return {"ok": True}
+
+
+@router.delete("/users/{user_id}")
+def delete_user(user_id: int, current_user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.username == "admin":
+        raise HTTPException(status_code=400, detail="Cannot delete admin")
+    db.delete(user)
+    db.commit()
+    return {"ok": True}
+
+
 # OAuth2 / OIDC Configuration
 @router.get("/oauth/config")
 def get_oauth_config():

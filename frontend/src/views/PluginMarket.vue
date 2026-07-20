@@ -94,8 +94,16 @@ async function togglePlugin(p: Plugin, v: boolean) {
 
 function openConfig(p: Plugin) {
   configPlugin.value = p
-  try { const schema = JSON.parse(p.config_schema); Object.keys(schema).forEach(k => { configData[k] = '' }) } catch { /* */ }
-  try { const data = JSON.parse(p.config_data); Object.assign(configData, data) } catch { /* */ }
+  // 清空旧的 key
+  Object.keys(configData).forEach(k => delete configData[k])
+  try {
+    const schema = JSON.parse(p.config_schema)
+    Object.keys(schema).forEach(k => { configData[k] = schema[k] || '' })
+  } catch { /* schema not JSON */ }
+  try {
+    const data = JSON.parse(p.config_data)
+    Object.keys(data).forEach(k => { configData[k] = data[k] })
+  } catch { /* no data yet */ }
   showConfig.value = true
 }
 
