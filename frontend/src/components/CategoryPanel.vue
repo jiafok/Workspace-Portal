@@ -25,6 +25,19 @@
     </div>
     <div v-if="websites.length" class="site-grid">
       <div v-for="w in websites" :key="w.id" class="site-card glass glass-hover" @click="openWeb(w)">
+        <div class="site-actions" @click.stop>
+          <el-dropdown trigger="click" @command="(cmd) => onSiteCmd(cmd, w)">
+            <el-button size="small" circle>
+              <el-icon><MoreFilled /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="edit"><el-icon><Edit /></el-icon> 编辑网站</el-dropdown-item>
+                <el-dropdown-item command="delete" divided><el-icon><Delete /></el-icon> 删除网站</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+        </div>
         <img v-if="w.icon_url" :src="w.icon_url" class="site-img" />
         <el-icon v-else class="site-fb" size="22"><Link /></el-icon>
         <div class="site-text">
@@ -46,7 +59,7 @@ import { computed } from 'vue'
 import { useNavigationStore } from '../stores/navigation'
 
 const p = defineProps<{ category: any; websites: any[]; index?: number }>()
-const emit = defineEmits(['addWebsite', 'editCategory', 'deleteCategory', 'refresh'])
+const emit = defineEmits(['addWebsite', 'editCategory', 'deleteCategory', 'editWebsite', 'deleteWebsite', 'refresh'])
 const nav = useNavigationStore()
 
 const animStyle = computed(() => ({ animationDelay: (p.index ?? 0) * 0.06 + 's' }))
@@ -55,6 +68,9 @@ const iconBg = computed(() => {
   return { background: clrs[(p.index ?? 0) % clrs.length] }
 })
 function onCmd(c: string) { c === 'edit' ? emit('editCategory', p.category) : emit('deleteCategory', p.category) }
+function onSiteCmd(c: string, website: any) {
+  c === 'edit' ? emit('editWebsite', website) : emit('deleteWebsite', website)
+}
 function openWeb(w: any) { nav.recordVisit(w.id); window.open(w.url, '_blank') }
 function shortUrl(u: string) {
   try { return new URL(u.startsWith('http') ? u : 'https://' + u).hostname.replace('www.', '') }
@@ -74,6 +90,8 @@ function shortUrl(u: string) {
 .site-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
 .site-card { display: flex; align-items: center; gap: 12px; padding: 16px; border-radius: 16px; cursor: pointer; position: relative; transition: all 0.25s ease; }
 .site-card:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(0,0,0,0.12); border-color: var(--accent-light) !important; }
+.site-actions { position: absolute; top: 10px; right: 10px; opacity: 0; transition: opacity 0.2s ease; }
+.site-card:hover .site-actions { opacity: 1; }
 .site-img { width: 32px; height: 32px; border-radius: 8px; object-fit: contain; flex-shrink: 0; }
 .site-fb { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: var(--accent); color: #fff; flex-shrink: 0; }
 .site-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
