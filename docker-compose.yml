@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   workspace-portal:
-    build: .
+    image: ghcr.io/jiafok/workspace-portal:latest
     container_name: workspace-portal
     ports:
       - "6066:6066"
