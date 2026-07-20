@@ -371,7 +371,7 @@ class NASServiceResponse(NASServiceBase):
 
 # ========== Docker ==========
 class ContainerInfoResponse(BaseModel):
-    id: int
+    id: Optional[int] = None
     container_id: str
     name: str
     status: str

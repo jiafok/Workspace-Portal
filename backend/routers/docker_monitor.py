@@ -221,7 +221,7 @@ def _parse_uptime(started_at: str) -> str:
         return started_at or "N/A"
 
 
-@router.get("/containers", response_model=List[ContainerInfoResponse])
+@router.get("/containers")
 def get_containers(db: Session = Depends(get_db)):
     client = get_docker_client()
     if not client:
@@ -230,8 +230,19 @@ def get_containers(db: Session = Depends(get_db)):
     container_list = []
     try:
         # ── handle both SDK client and raw DockerClient ──
+        def _add_container(info_data: dict):
+            existing = db.query(ContainerInfo).filter(ContainerInfo.container_id == info_data["container_id"]).first()
+            if existing:
+                for k, v in info_data.items():
+                    setattr(existing, k, v)
+                obj = existing
+            else:
+                obj = ContainerInfo(**info_data)
+                db.add(obj)
+            db.flush()  # get auto-increment id
+            container_list.append(obj)
+
         if isinstance(client, DockerClient):
-            # Raw HTTP client
             for c in client.list_containers():
                 cpu_percent = 0.0
                 mem_str = "N/A"
@@ -248,9 +259,7 @@ def get_containers(db: Session = Depends(get_db)):
                     mem_str = f"{round(mem_usage / 1024 / 1024, 1)}MB / {round(mem_limit / 1024 / 1024, 1)}MB"
                 except Exception:
                     pass
-                uptime_str = _parse_uptime(c.uptime) if c.uptime else "N/A"
-
-                info_data = {
+                _add_container({
                     "container_id": c.id,
                     "name": c.name,
                     "status": c.status,
@@ -258,15 +267,8 @@ def get_containers(db: Session = Depends(get_db)):
                     "ports": c.ports,
                     "cpu_percent": cpu_percent,
                     "memory_usage": mem_str,
-                    "uptime": uptime_str,
-                }
-                existing = db.query(ContainerInfo).filter(ContainerInfo.container_id == c.id).first()
-                if existing:
-                    for k, v in info_data.items():
-                        setattr(existing, k, v)
-                else:
-                    db.add(ContainerInfo(**info_data))
-                container_list.append(existing or ContainerInfo(**info_data))
+                    "uptime": _parse_uptime(c.uptime) if c.uptime else "N/A",
+                })
         else:
             # SDK client
             import docker as docker_sdk
@@ -283,9 +285,7 @@ def get_containers(db: Session = Depends(get_db)):
                 except Exception:
                     cpu_percent = 0.0
                     mem_str = "N/A"
-                started = c.attrs.get("State", {}).get("StartedAt", "")
-                uptime_str = _parse_uptime(started)
-                info_data = {
+                _add_container({
                     "container_id": c.id,
                     "name": c.name,
                     "status": c.status,
@@ -293,15 +293,8 @@ def get_containers(db: Session = Depends(get_db)):
                     "ports": ports,
                     "cpu_percent": cpu_percent,
                     "memory_usage": mem_str,
-                    "uptime": uptime_str,
-                }
-                existing = db.query(ContainerInfo).filter(ContainerInfo.container_id == c.id).first()
-                if existing:
-                    for k, v in info_data.items():
-                        setattr(existing, k, v)
-                else:
-                    db.add(ContainerInfo(**info_data))
-                container_list.append(existing or ContainerInfo(**info_data))
+                    "uptime": _parse_uptime(c.attrs.get("State", {}).get("StartedAt", "")),
+                })
 
         db.commit()
     except Exception as e:
