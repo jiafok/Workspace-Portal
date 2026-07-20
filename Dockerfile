@@ -16,10 +16,10 @@ RUN apk add --no-cache gcc musl-dev libffi-dev
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code
-COPY backend/ ./
+# Copy backend code into /app/backend/
+COPY backend/ ./backend/
 
-# Copy frontend build
+# Copy frontend build into /app/frontend/dist/
 COPY --from=frontend-build /app/frontend/dist /app/frontend/dist
 
 # Create data dir
