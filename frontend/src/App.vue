@@ -1,6 +1,6 @@
 <template>
   <Login v-if="!authStore.isAuthenticated && !authLoading" />
-  <div v-else-if="!authLoading" :class="['app-container', layoutMode]">
+  <div v-else-if="!authLoading" :class="['app-container', `layout-${layoutMode}`]">
     <aside v-if="layoutMode === 'sidebar'" class="sidebar glass"><SidebarNav /></aside>
     <div class="main-area">
       <header class="top-bar glass">
@@ -150,11 +150,13 @@ onMounted(async () => {
 <style scoped>
 .app-container {
   display: flex;
+  width: 100%;
   min-height: 100vh;
   height: 100vh;
 }
-.app-container.sidebar {
+.app-container.layout-sidebar {
   padding-left: 260px;
+  box-sizing: border-box;
 }
 
 .sidebar {
@@ -167,9 +169,10 @@ onMounted(async () => {
 }
 
 .main-area {
-  flex: 1;
+  flex: 1 1 auto;
   display: flex;
   flex-direction: column;
+  width: 100%;
   min-width: 0;
   height: 100%;
 }
@@ -283,7 +286,7 @@ kbd {
 }
 
 @media (max-width: 768px) {
-  .app-container.sidebar {
+  .app-container.layout-sidebar {
     padding-left: 0;
   }
   .sidebar {

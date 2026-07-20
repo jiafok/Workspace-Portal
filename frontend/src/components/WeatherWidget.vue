@@ -14,7 +14,10 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../api'
+
+const router = useRouter()
 
 const hasWeather = ref(false)
 const temp = ref('--')
@@ -23,14 +26,13 @@ const weatherIcon = ref('☀️')
 
 async function fetchWeather() {
   try {
-    // Try to read weather plugin config
     const { data } = await api.get('/plugins')
     const weatherPlugin = data.find((p: any) => p.plugin_id === 'weather-widget' && p.is_enabled)
     if (weatherPlugin) {
       const config = JSON.parse(weatherPlugin.config_data || '{}')
       if (config.api_key && config.city) {
         const resp = await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?q=${config.city}&appid=${config.api_key}&units=${config.units || 'metric'}&lang=zh_cn`
+          `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(config.city)}&appid=${config.api_key}&units=${config.units || 'metric'}&lang=zh_cn`
         )
         if (resp.ok) {
           const w = await resp.json()
@@ -52,8 +54,12 @@ async function fetchWeather() {
   hasWeather.value = false
 }
 
-function openWeather() {}
-function openConfig() {}
+function openWeather() {
+  // Could open detailed weather view in the future
+}
+function openConfig() {
+  router.push('/plugins')
+}
 
 onMounted(fetchWeather)
 </script>
