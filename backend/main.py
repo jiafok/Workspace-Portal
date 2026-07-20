@@ -1,5 +1,7 @@
 from fastapi import FastAPI
+from fastapi import HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from database import engine, Base, SessionLocal
 from models import (
@@ -167,8 +169,26 @@ app.mount("/api/backgrounds/file", StaticFiles(directory=bg_dir), name="backgrou
 # Serve frontend dist (single-container mode)
 FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "dist")
 if os.path.exists(FRONTEND_DIR):
-    app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+    assets_dir = os.path.join(FRONTEND_DIR, "assets")
+    if os.path.exists(assets_dir):
+        app.mount("/assets", StaticFiles(directory=assets_dir), name="frontend_assets")
+    app.mount("/manifest.webmanifest", StaticFiles(directory=FRONTEND_DIR), name="frontend_manifest")
+    app.mount("/vite.svg", StaticFiles(directory=FRONTEND_DIR), name="frontend_vite_icon")
+    app.mount("/registerSW.js", StaticFiles(directory=FRONTEND_DIR), name="frontend_register_sw")
+    app.mount("/sw.js", StaticFiles(directory=FRONTEND_DIR), name="frontend_sw")
+    app.mount("/workbox-9c191d2f.js", StaticFiles(directory=FRONTEND_DIR), name="frontend_workbox")
     print(f"[Workspace Portal] Serving frontend from {FRONTEND_DIR}")
+
+    @app.get("/{full_path:path}")
+    def serve_frontend(full_path: str):
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not found")
+
+        requested_path = os.path.join(FRONTEND_DIR, full_path)
+        if full_path and os.path.isfile(requested_path):
+            return FileResponse(requested_path)
+
+        return FileResponse(os.path.join(FRONTEND_DIR, "index.html"))
 else:
     print("[Workspace Portal] Frontend dist not found. API-only mode.")
 
