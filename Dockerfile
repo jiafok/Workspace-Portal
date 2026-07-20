@@ -10,7 +10,7 @@ RUN npm run build
 FROM python:3.11-alpine
 WORKDIR /app
 
-RUN apk add --no-cache gcc musl-dev libffi-dev
+RUN apk add --no-cache gcc musl-dev libffi-dev curl
 
 # Install Python deps
 COPY backend/requirements.txt ./

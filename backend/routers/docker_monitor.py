@@ -8,45 +8,96 @@ import os
 import json
 import datetime
 import subprocess
+import socket as sock_mod
 
 router = APIRouter(prefix="/api/docker", tags=["docker"])
 
-# ── detect Docker ──────────────────────────────────────────
-DOCKER_SOCKET_PATHS = ["/var/run/docker.sock", "/run/docker.sock"]
+DOCKER_SOCKET = "/var/run/docker.sock"
 
-def _find_socket() -> Optional[str]:
-    """Return the first existing Docker socket path, or None."""
-    for p in DOCKER_SOCKET_PATHS:
-        if os.path.exists(p):
-            return p
-    return None
+# ── Raw HTTP over Unix socket (works on any Linux, no deps) ─
+def _raw_docker(method: str, path: str, body: Optional[dict] = None) -> dict:
+    """Pure Python raw HTTP over Unix socket. No SDK, no http.client."""
+    if not os.path.exists(DOCKER_SOCKET):
+        raise RuntimeError(f"Docker socket not found: {DOCKER_SOCKET}")
 
-def _docker_api(method: str, path: str, body: Optional[dict] = None) -> dict:
-    """Make raw HTTP request to Docker socket (no SDK dependency)."""
-    import http.client
-    import urllib.parse
-
-    socket_path = _find_socket()
-    if not socket_path:
-        raise RuntimeError("No Docker socket found")
-
-    conn = http.client.HTTPConnection("localhost")
-    conn.sock = None  # will be replaced below
-    # Create Unix socket connection
-    import socket as sock_mod
     s = sock_mod.socket(sock_mod.AF_UNIX, sock_mod.SOCK_STREAM)
-    s.connect(socket_path)
-    conn.sock = s
+    s.settimeout(10)
+    try:
+        s.connect(DOCKER_SOCKET)
 
-    body_bytes = json.dumps(body).encode() if body else None
-    headers = {"Host": "localhost", "Content-Type": "application/json"} if body_bytes else {"Host": "localhost"}
-    conn.request(method, path, body=body_bytes, headers=headers)
-    resp = conn.getresponse()
-    data = resp.read().decode()
-    conn.close()
-    if resp.status >= 400:
-        raise RuntimeError(f"Docker API {resp.status}: {data[:200]}")
-    return json.loads(data) if data else {}
+        body_json = json.dumps(body) if body else None
+        req = f"{method} {path} HTTP/1.0\r\nHost: localhost\r\n"
+        if body_json:
+            req += f"Content-Type: application/json\r\nContent-Length: {len(body_json)}\r\n"
+        req += "\r\n"
+        s.sendall(req.encode())
+        if body_json:
+            s.sendall(body_json.encode())
+
+        # Read all response data
+        chunks = []
+        while True:
+            try:
+                chunk = s.recv(65536)
+                if not chunk:
+                    break
+                chunks.append(chunk)
+            except sock_mod.timeout:
+                break
+        raw = b"".join(chunks).decode("utf-8", errors="replace")
+
+        # Split headers and body
+        parts = raw.split("\r\n\r\n", 1)
+        if len(parts) < 2:
+            raise RuntimeError(f"Invalid HTTP response: {raw[:200]}")
+        header_section, body_str = parts
+
+        # Check status
+        status_line = header_section.split("\r\n")[0]
+        status_code = int(status_line.split(" ")[1]) if len(status_line.split(" ")) > 1 else 0
+
+        # Handle chunked transfer encoding
+        if "Transfer-Encoding: chunked" in header_section:
+            decoded = b""
+            remaining = body_str
+            while remaining:
+                line_end = remaining.find("\r\n")
+                if line_end == -1:
+                    break
+                try:
+                    chunk_size = int(remaining[:line_end], 16)
+                except ValueError:
+                    break
+                if chunk_size == 0:
+                    break
+                chunk_start = line_end + 2
+                decoded += remaining[chunk_start:chunk_start + chunk_size].encode() if isinstance(remaining, str) else remaining[chunk_start:chunk_start + chunk_size]
+                remaining = remaining[chunk_start + chunk_size + 2:]
+            body_str = decoded.decode("utf-8", errors="replace") if isinstance(decoded, bytes) else decoded
+
+        if status_code >= 400:
+            raise RuntimeError(f"Docker API {status_code}: {body_str[:200]}")
+
+        return json.loads(body_str) if body_str and body_str.strip() else {}
+
+    finally:
+        try:
+            s.close()
+        except Exception:
+            pass
+
+# ── curl fallback (if installed) ──
+def _curl_docker(method: str, path: str, body: Optional[dict] = None) -> dict:
+    """Use curl --unix-socket as fallback."""
+    cmd = ["curl", "-s", "--unix-socket", DOCKER_SOCKET, f"http://localhost{path}"]
+    if method != "GET":
+        cmd += ["-X", method]
+    if body:
+        cmd += ["-H", "Content-Type: application/json", "-d", json.dumps(body)]
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+    if result.returncode != 0:
+        raise RuntimeError(f"curl error: {result.stderr.strip()}")
+    return json.loads(result.stdout) if result.stdout.strip() else {}
 
 # ── client wrapper ──────────────────────────────────────────
 class DockerClient:
@@ -67,66 +118,86 @@ class DockerClient:
             started = raw.get("Status", "")
             self.uptime = started if started else "N/A"
 
+    @staticmethod
+    def _api(method: str, path: str, body: Optional[dict] = None) -> dict:
+        """Try raw Python first, then curl, then SDK."""
+        errors = []
+        # 1) Pure Python raw socket (zero deps, works everywhere)
+        if os.path.exists(DOCKER_SOCKET):
+            try:
+                return _raw_docker(method, path, body)
+            except Exception as e:
+                errors.append(f"raw: {e}")
+        # 2) curl --unix-socket
+        try:
+            result = subprocess.run(["which", "curl"], capture_output=True, timeout=3)
+            if result.returncode == 0:
+                return _curl_docker(method, path, body)
+        except Exception as e:
+            errors.append(f"curl: {e}")
+        # 3) docker SDK
+        try:
+            import docker as docker_sdk
+            if os.path.exists(DOCKER_SOCKET):
+                client = docker_sdk.DockerClient(base_url=f"unix://{DOCKER_SOCKET}")
+                client.ping()
+                # Delegate to SDK path
+                raise RuntimeError("use_sdk")
+        except Exception as e:
+            if "use_sdk" in str(e):
+                raise  # re-raise to use SDK
+            errors.append(f"sdk: {e}")
+        raise RuntimeError("; ".join(errors))
+
     def list_containers(self) -> list:
-        data = _docker_api("GET", "/containers/json?all=true")
+        data = self._api("GET", "/containers/json?all=true")
         return [self.Container(c) for c in data]
 
     def container_stats(self, container_id: str) -> dict:
-        return _docker_api("GET", f"/containers/{container_id}/stats?stream=false")
+        return self._api("GET", f"/containers/{container_id}/stats?stream=false")
 
     def container_action(self, container_id: str, action: str):
-        _docker_api("POST", f"/containers/{container_id}/{action}")
+        self._api("POST", f"/containers/{container_id}/{action}")
 
     def info(self) -> dict:
-        return _docker_api("GET", "/info")
+        return self._api("GET", "/info")
 
     def ping(self) -> bool:
         try:
-            _docker_api("GET", "/_ping")
+            self._api("GET", "/_ping")
             return True
         except Exception:
             return False
 
 # ── factory ─────────────────────────────────────────────────
-def get_docker_client() -> Optional[DockerClient]:
-    """Try Docker SDK first, fall back to raw HTTP over Unix socket."""
-    # 1) Python docker SDK
+def get_docker_client():
+    """Try raw HTTP first (works everywhere), fall back to SDK."""
+    # Always try our pure-Python raw HTTP first — works on any Linux distro
+    if os.path.exists(DOCKER_SOCKET):
+        try:
+            raw = DockerClient()
+            if raw.ping():
+                print("[docker] Connected via pure Python socket")
+                return raw
+        except Exception as e:
+            print(f"[docker] Raw HTTP: {e}")
+
+    # Fallback: docker SDK
     try:
         import docker as docker_sdk
-        for socket_path in DOCKER_SOCKET_PATHS:
-            if os.path.exists(socket_path):
-                try:
-                    client = docker_sdk.DockerClient(base_url=f"unix://{socket_path}")
-                    client.ping()
-                    return client  # SDK client — will be handled below
-                except Exception as e:
-                    print(f"[docker] SDK {socket_path}: {e}")
-        try:
-            client = docker_sdk.from_env()
-            client.ping()
-            return client
-        except Exception as e:
-            print(f"[docker] SDK from_env: {e}")
-    except ImportError:
-        print("[docker] docker SDK not installed, skipping")
-
-    # 2) Raw HTTP over Unix socket (NAS-friendly, no SDK needed)
-    try:
-        raw = DockerClient()
-        if raw.ping():
-            print("[docker] Connected via raw HTTP over socket")
-            return raw
+        if os.path.exists(DOCKER_SOCKET):
+            try:
+                client = docker_sdk.DockerClient(base_url=f"unix://{DOCKER_SOCKET}")
+                client.ping()
+                print("[docker] Connected via SDK")
+                return client
+            except Exception as e:
+                print(f"[docker] SDK: {e}")
+        client = docker_sdk.from_env()
+        client.ping()
+        return client
     except Exception as e:
-        print(f"[docker] Raw HTTP: {e}")
-
-    # 3) Subprocess docker CLI (if installed in container)
-    try:
-        result = subprocess.run(["docker", "ps"], capture_output=True, timeout=5)
-        if result.returncode == 0:
-            print("[docker] Connected via subprocess CLI")
-            return "cli"
-    except Exception as e:
-        print(f"[docker] Subprocess: {e}")
+        print(f"[docker] SDK fallback: {e}")
 
     return None
 
