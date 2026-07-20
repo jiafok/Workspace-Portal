@@ -177,18 +177,21 @@ onMounted(async () => {
 .top-bar {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 12px;
   padding: 10px 20px;
   flex-shrink: 0;
   flex-wrap: nowrap;
   background: var(--bg-glass);
   border-bottom: 1px solid var(--border-color);
+  min-height: 52px;
 }
 
 .top-left {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 .app-title {
   font-size: 18px;
@@ -201,8 +204,8 @@ onMounted(async () => {
 
 .top-center {
   flex: 1;
-  max-width: 480px;
-  margin: 0 24px;
+  min-width: 200px;
+  max-width: 500px;
 }
 .global-search {
   display: flex;
@@ -214,6 +217,9 @@ onMounted(async () => {
   cursor: pointer;
   border: 1px solid var(--border-color);
   transition: all var(--transition);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .global-search:hover {
   border-color: var(--accent-light);
@@ -223,6 +229,9 @@ onMounted(async () => {
   flex: 1;
   color: var(--text-muted);
   font-size: 14px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 kbd {
   background: var(--bg-secondary);
@@ -231,12 +240,14 @@ kbd {
   font-size: 11px;
   border: 1px solid var(--border-color);
   color: var(--text-secondary);
+  flex-shrink: 0;
 }
 
 .top-right {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
 .user-btn {
