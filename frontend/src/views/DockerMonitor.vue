@@ -84,20 +84,30 @@ const dockerError = ref('')
 async function fetchContainers() {
   loading.value = true
   try {
-    // Try status first for diagnostics, but do not block container fetch on it.
+    // Fetch container list directly (primary signal).
+    // Retry once to handle transient NAS socket slow responses.
+    let data: any[] = []
+    try {
+      const res = await getContainers()
+      data = res.data
+    } catch {
+      const retry = await getContainers()
+      data = retry.data
+    }
+
+    // Status is only for diagnostics and never blocks rendering.
     try {
       const statusRes = await api.get('/docker/status')
       if (!statusRes.data.available) {
         dockerError.value = statusRes.data.error || 'Docker 状态检查失败'
       }
     } catch {
-      // Ignore status errors and continue fetching containers.
+      // ignore
     }
 
-    const { data } = await getContainers()
     containers.value = data
     dockerAvailable.value = true
-    dockerError.value = ''
+    if (!dockerError.value) dockerError.value = ''
   } catch (e: any) {
     dockerAvailable.value = false
     dockerError.value = e?.response?.data?.error || e?.response?.data?.detail || '无法连接 Docker'
