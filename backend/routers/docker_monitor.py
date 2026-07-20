@@ -233,55 +233,28 @@ def get_containers(db: Session = Depends(get_db)):
     try:
         if isinstance(client, DockerClient):
             for c in client.list_containers():
-                cpu_percent = 0.0
-                mem_str = "N/A"
                 uptime_str = _parse_uptime(c.uptime) if c.uptime else "N/A"
-                try:
-                    stats = client.container_stats(c.id)
-                    cpu_d = stats.get("cpu_stats", {}).get("cpu_usage", {}).get("total_usage", 0)
-                    precpu_d = stats.get("precpu_stats", {}).get("cpu_usage", {}).get("total_usage", 0)
-                    sys_d = stats.get("cpu_stats", {}).get("system_cpu_usage", 0)
-                    presys_d = stats.get("precpu_stats", {}).get("system_cpu_usage", 0)
-                    if sys_d > presys_d:
-                        cpu_percent = round(((cpu_d - precpu_d) / (sys_d - presys_d)) * 100, 1)
-                    mem_usage = stats.get("memory_stats", {}).get("usage", 0)
-                    mem_limit = stats.get("memory_stats", {}).get("limit", 1)
-                    mem_str = f"{round(mem_usage / 1024 / 1024, 1)}MB / {round(mem_limit / 1024 / 1024, 1)}MB"
-                except Exception:
-                    pass
                 raw_data.append({
                     "container_id": c.id or "",
                     "name": c.name or "",
                     "status": c.status or "",
                     "image": c.image or "",
                     "ports": c.ports or "",
-                    "cpu_percent": cpu_percent,
-                    "memory_usage": mem_str,
+                    "cpu_percent": 0.0,
+                    "memory_usage": "N/A",
                     "uptime": uptime_str,
                 })
         else:
             for c in client.containers.list(all=True):
                 ports = ", ".join(k for k in (c.attrs.get("NetworkSettings", {}).get("Ports", {}) or {}).keys())
-                cpu_percent = 0.0
-                mem_str = "N/A"
-                try:
-                    stats = c.stats(stream=False)
-                    cpu_d = stats["cpu_stats"]["cpu_usage"]["total_usage"] - stats["precpu_stats"]["cpu_usage"]["total_usage"]
-                    sys_d = stats["cpu_stats"]["system_cpu_usage"] - stats["precpu_stats"]["system_cpu_usage"]
-                    cpu_percent = round((cpu_d / sys_d) * 100, 1) if sys_d > 0 else 0.0
-                    mem_usage = stats.get("memory_stats", {}).get("usage", 0)
-                    mem_limit = stats.get("memory_stats", {}).get("limit", 1)
-                    mem_str = f"{round(mem_usage / 1024 / 1024, 1)}MB / {round(mem_limit / 1024 / 1024, 1)}MB"
-                except Exception:
-                    pass
                 raw_data.append({
                     "container_id": c.id,
                     "name": c.name,
                     "status": c.status,
                     "image": c.image.tags[0] if c.image.tags else c.image.id[:12],
                     "ports": ports,
-                    "cpu_percent": cpu_percent,
-                    "memory_usage": mem_str,
+                    "cpu_percent": 0.0,
+                    "memory_usage": "N/A",
                     "uptime": _parse_uptime(c.attrs.get("State", {}).get("StartedAt", "")),
                 })
     except Exception as e:
