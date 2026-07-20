@@ -227,25 +227,14 @@ def get_containers(db: Session = Depends(get_db)):
     if not client:
         return db.query(ContainerInfo).all()
 
-    container_list = []
+    # ── Step 1: Fetch ALL Docker data OUTSIDE any DB transaction ──
+    raw_data: list[dict] = []
     try:
-        # ── handle both SDK client and raw DockerClient ──
-        def _add_container(info_data: dict):
-            existing = db.query(ContainerInfo).filter(ContainerInfo.container_id == info_data["container_id"]).first()
-            if existing:
-                for k, v in info_data.items():
-                    setattr(existing, k, v)
-                obj = existing
-            else:
-                obj = ContainerInfo(**info_data)
-                db.add(obj)
-            db.flush()  # get auto-increment id
-            container_list.append(obj)
-
         if isinstance(client, DockerClient):
             for c in client.list_containers():
                 cpu_percent = 0.0
                 mem_str = "N/A"
+                uptime_str = _parse_uptime(c.uptime) if c.uptime else "N/A"
                 try:
                     stats = client.container_stats(c.id)
                     cpu_d = stats.get("cpu_stats", {}).get("cpu_usage", {}).get("total_usage", 0)
@@ -259,21 +248,21 @@ def get_containers(db: Session = Depends(get_db)):
                     mem_str = f"{round(mem_usage / 1024 / 1024, 1)}MB / {round(mem_limit / 1024 / 1024, 1)}MB"
                 except Exception:
                     pass
-                _add_container({
-                    "container_id": c.id,
-                    "name": c.name,
-                    "status": c.status,
-                    "image": c.image,
-                    "ports": c.ports,
+                raw_data.append({
+                    "container_id": c.id or "",
+                    "name": c.name or "",
+                    "status": c.status or "",
+                    "image": c.image or "",
+                    "ports": c.ports or "",
                     "cpu_percent": cpu_percent,
                     "memory_usage": mem_str,
-                    "uptime": _parse_uptime(c.uptime) if c.uptime else "N/A",
+                    "uptime": uptime_str,
                 })
         else:
-            # SDK client
-            import docker as docker_sdk
             for c in client.containers.list(all=True):
                 ports = ", ".join(k for k in (c.attrs.get("NetworkSettings", {}).get("Ports", {}) or {}).keys())
+                cpu_percent = 0.0
+                mem_str = "N/A"
                 try:
                     stats = c.stats(stream=False)
                     cpu_d = stats["cpu_stats"]["cpu_usage"]["total_usage"] - stats["precpu_stats"]["cpu_usage"]["total_usage"]
@@ -283,9 +272,8 @@ def get_containers(db: Session = Depends(get_db)):
                     mem_limit = stats.get("memory_stats", {}).get("limit", 1)
                     mem_str = f"{round(mem_usage / 1024 / 1024, 1)}MB / {round(mem_limit / 1024 / 1024, 1)}MB"
                 except Exception:
-                    cpu_percent = 0.0
-                    mem_str = "N/A"
-                _add_container({
+                    pass
+                raw_data.append({
                     "container_id": c.id,
                     "name": c.name,
                     "status": c.status,
@@ -295,13 +283,31 @@ def get_containers(db: Session = Depends(get_db)):
                     "memory_usage": mem_str,
                     "uptime": _parse_uptime(c.attrs.get("State", {}).get("StartedAt", "")),
                 })
+    except Exception as e:
+        print(f"[docker] Failed to fetch container data: {e}")
+        return db.query(ContainerInfo).all()
 
+    # ── Step 2: Quick DB write (short lock) ──
+    try:
+        for d in raw_data:
+            existing = db.query(ContainerInfo).filter(
+                ContainerInfo.container_id == d["container_id"]
+            ).first()
+            if existing:
+                for k, v in d.items():
+                    setattr(existing, k, v)
+                existing.last_updated = datetime.datetime.utcnow()
+            else:
+                obj = ContainerInfo(**d)
+                obj.last_updated = datetime.datetime.utcnow()
+                db.add(obj)
         db.commit()
     except Exception as e:
-        print(f"[docker] Error listing containers: {e}")
-        container_list = db.query(ContainerInfo).all()
+        db.rollback()
+        print(f"[docker] DB write error: {e}")
+        return db.query(ContainerInfo).all()
 
-    return container_list
+    return db.query(ContainerInfo).all()
 
 
 def _do_container_action(container_id: str, action: str):
@@ -339,7 +345,7 @@ def get_container_logs(container_id: str, tail: int = 100):
         return {"ok": False, "error": "Docker not available"}
     try:
         if isinstance(client, DockerClient):
-            data = _docker_api("GET", f"/containers/{container_id}/logs?stdout=true&stderr=true&tail={tail}")
+            data = DockerClient._api("GET", f"/containers/{container_id}/logs?stdout=true&stderr=true&tail={tail}")
             return {"ok": True, "logs": str(data)}
         else:
             logs = client.containers.get(container_id).logs(tail=tail, timestamps=True).decode("utf-8", errors="replace")
