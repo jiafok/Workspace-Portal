@@ -84,19 +84,20 @@ const dockerError = ref('')
 async function fetchContainers() {
   loading.value = true
   try {
-    // First check Docker status
-    const statusRes = await api.get('/docker/status')
-    if (!statusRes.data.available) {
-      dockerAvailable.value = false
-      dockerError.value = statusRes.data.error || 'Docker 未运行'
-      loading.value = false
-      return
+    // Try status first for diagnostics, but do not block container fetch on it.
+    try {
+      const statusRes = await api.get('/docker/status')
+      if (!statusRes.data.available) {
+        dockerError.value = statusRes.data.error || 'Docker 状态检查失败'
+      }
+    } catch {
+      // Ignore status errors and continue fetching containers.
     }
-    dockerAvailable.value = true
-    dockerError.value = ''
-    // Then fetch containers
+
     const { data } = await getContainers()
     containers.value = data
+    dockerAvailable.value = true
+    dockerError.value = ''
   } catch (e: any) {
     dockerAvailable.value = false
     dockerError.value = e?.response?.data?.error || e?.response?.data?.detail || '无法连接 Docker'

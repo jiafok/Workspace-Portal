@@ -343,9 +343,30 @@ def docker_status():
         return {"available": False, "error": "Docker socket not found"}
     try:
         if isinstance(client, DockerClient):
-            info = client.info()
+            # Raw client: ping success already means socket/API is usable.
+            try:
+                info = client.info()
+                return {
+                    "available": True,
+                    "containers": info.get("Containers", 0),
+                    "server_version": info.get("ServerVersion", ""),
+                }
+            except Exception as e:
+                return {"available": True, "warning": f"info unavailable: {e}"}
         else:
-            info = client.info()
-        return {"available": True, "containers": info.get("Containers", 0), "server_version": info.get("ServerVersion", "")}
+            # SDK client
+            try:
+                client.ping()
+            except Exception as e:
+                return {"available": False, "error": f"ping failed: {e}"}
+            try:
+                info = client.info()
+                return {
+                    "available": True,
+                    "containers": info.get("Containers", 0),
+                    "server_version": info.get("ServerVersion", ""),
+                }
+            except Exception as e:
+                return {"available": True, "warning": f"info unavailable: {e}"}
     except Exception as e:
         return {"available": False, "error": str(e)}
