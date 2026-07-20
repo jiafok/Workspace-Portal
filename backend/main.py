@@ -16,7 +16,7 @@ import json
 
 Base.metadata.create_all(bind=engine)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data")
+DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 
@@ -165,9 +165,7 @@ os.makedirs(bg_dir, exist_ok=True)
 app.mount("/api/backgrounds/file", StaticFiles(directory=bg_dir), name="backgrounds_files")
 
 # Serve frontend dist (single-container mode)
-FRONTEND_DIR = os.path.join(DATA_DIR, "..", "frontend", "dist")
-if not os.path.exists(FRONTEND_DIR):
-    FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "frontend", "dist")
+FRONTEND_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "dist")
 if os.path.exists(FRONTEND_DIR):
     app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
     print(f"[Workspace Portal] Serving frontend from {FRONTEND_DIR}")

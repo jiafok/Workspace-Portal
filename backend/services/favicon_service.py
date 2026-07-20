@@ -4,7 +4,7 @@ from bs4 import BeautifulSoup
 import hashlib
 import os
 
-ICONS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "icons")
+ICONS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "data", "icons")
 os.makedirs(ICONS_DIR, exist_ok=True)
 
 
