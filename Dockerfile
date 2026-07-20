@@ -27,4 +27,5 @@ RUN mkdir -p /app/data
 
 EXPOSE 6066
 
+WORKDIR /app/backend
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "6066"]
