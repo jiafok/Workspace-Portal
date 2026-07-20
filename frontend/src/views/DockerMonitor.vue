@@ -9,7 +9,16 @@
 
     <div v-if="!dockerAvailable" class="notice glass">
       <el-icon size="24"><WarningFilled /></el-icon>
-      <span>Docker socket 不可用。请确保 /var/run/docker.sock 已挂载。</span>
+      <div class="notice-content">
+        <p><strong>Docker 不可用</strong></p>
+        <p class="notice-detail">{{ dockerError || 'Docker socket 未挂载或权限不足。' }}</p>
+        <p class="notice-help">
+          NAS 用户请确认 docker-compose.yml 中包含：
+          <code>- /var/run/docker.sock:/var/run/docker.sock</code>
+          <br />如果已配置但仍无效，请在 NAS 上执行：
+          <code>chmod 666 /var/run/docker.sock</code>
+        </p>
+      </div>
     </div>
 
     <div v-loading="loading" class="container-list">
@@ -64,21 +73,33 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { getContainers, startContainer, stopContainer, restartContainer } from '../api'
+import { getContainers, startContainer, stopContainer, restartContainer, api } from '../api'
 import { ElMessage } from 'element-plus'
 
 const containers = ref<any[]>([])
 const loading = ref(false)
 const dockerAvailable = ref(true)
+const dockerError = ref('')
 
 async function fetchContainers() {
   loading.value = true
   try {
+    // First check Docker status
+    const statusRes = await api.get('/docker/status')
+    if (!statusRes.data.available) {
+      dockerAvailable.value = false
+      dockerError.value = statusRes.data.error || 'Docker 未运行'
+      loading.value = false
+      return
+    }
+    dockerAvailable.value = true
+    dockerError.value = ''
+    // Then fetch containers
     const { data } = await getContainers()
     containers.value = data
-    dockerAvailable.value = true
-  } catch {
+  } catch (e: any) {
     dockerAvailable.value = false
+    dockerError.value = e?.response?.data?.error || e?.response?.data?.detail || '无法连接 Docker'
   }
   loading.value = false
 }
@@ -118,11 +139,26 @@ onMounted(fetchContainers)
 }
 .notice {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
   padding: 20px;
   margin-bottom: 20px;
   color: var(--text-secondary);
+  background: rgba(255, 193, 7, 0.08);
+  border-color: rgba(255, 193, 7, 0.3);
+}
+.notice-content p { margin-bottom: 6px; }
+.notice-detail { font-size: 13px; opacity: 0.8; }
+.notice-help {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 8px;
+}
+.notice-help code {
+  background: var(--bg-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
 }
 .container-list {
   display: flex;

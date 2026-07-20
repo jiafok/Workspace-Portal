@@ -147,4 +147,5 @@ export const getUserSettings = () => api.get('/auth/settings')
 export const updateUserSettings = (data: any) => api.put('/auth/settings', data)
 export const getI18n = (lang: string) => api.get(`/auth/i18n/${lang}`)
 
+export { api }
 export default api

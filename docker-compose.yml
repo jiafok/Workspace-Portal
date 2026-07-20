@@ -8,6 +8,7 @@ services:
       - "6066:6066"
     volumes:
       - ./data:/app/data
+      # Docker monitoring — NAS users may need: chmod 666 /var/run/docker.sock
       - /var/run/docker.sock:/var/run/docker.sock:ro
     environment:
       - TZ=Asia/Shanghai
