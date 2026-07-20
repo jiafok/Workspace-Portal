@@ -170,6 +170,7 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 100vh;
 }
 
 .top-bar {
@@ -270,6 +271,9 @@ kbd {
 @media (max-width: 768px) {
   .app-container.sidebar {
     padding-left: 0;
+  }
+  .sidebar {
+    display: none;
   }
   .top-bar {
     margin: 8px 8px 0;
