@@ -22,11 +22,4 @@ def _set_wal(dbapi_conn, _conn_record):
     dbapi_conn.execute("PRAGMA busy_timeout=30000")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+Base = declarative_base()
