@@ -136,13 +136,11 @@ function handleKeydown(e: KeyboardEvent) {
 onMounted(async () => {
   i18nStore.loadLocale()
   await settingsStore.loadSettings()
-  // Auto guest login if no token
-  if (!authStore.isAuthenticated) {
-    await authStore.loginAsGuest()
-  }
+  // Always start fresh as guest (no token persistence across page loads)
+  authStore.logout()
+  await authStore.loginAsGuest()
+  await authStore.loadPageVisibility()
   if (authStore.isAuthenticated) {
-    await authStore.fetchMe()
-    await authStore.loadPageVisibility()
     dashboardStore.startTimers()
     dashboardStore.fetchDashboard()
     setInterval(() => { dashboardStore.fetchDashboard(); fetchUnreadCount() }, 30000)

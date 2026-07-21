@@ -12,6 +12,9 @@ interface User {
   is_active: boolean
 }
 
+// Default pages visible to non-admin users when no explicit config is set
+export const DEFAULT_GUEST_PAGES = ['/', '/ai-chat', '/navigate', '/enterprise', '/documents', '/personalize', '/settings']
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(localStorage.getItem('wp_token'))
@@ -66,7 +69,7 @@ export const useAuthStore = defineStore('auth', () => {
       visiblePages.value = data.pages || []
       pageVisibilityLoaded.value = true
     } catch {
-      visiblePages.value = []
+      visiblePages.value = DEFAULT_GUEST_PAGES
     }
   }
 

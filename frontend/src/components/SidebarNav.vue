@@ -54,10 +54,10 @@ const allNavItems = [
 
 const navItems = computed(() => {
   if (authStore.user?.role === 'admin') return allNavItems
-  // Non-admin: filter by page visibility config
+  // Non-admin: filter by page visibility config, with a safe default
   const visible = authStore.visiblePages
-  if (!visible || !visible.length) return allNavItems
-  return allNavItems.filter(item => visible.includes(item.path))
+  const pages = (visible && visible.length) ? visible : ['/', '/ai-chat', '/navigate', '/enterprise', '/documents', '/personalize', '/settings']
+  return allNavItems.filter(item => pages.includes(item.path))
 })
 </script>
 

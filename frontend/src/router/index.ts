@@ -39,10 +39,9 @@ router.beforeEach((to, _from, next) => {
 
   // Non-admin: check page visibility
   const visible = authStore.visiblePages
-  // If visibility not loaded or empty (no restriction), allow all
-  if (!authStore.pageVisibilityLoaded || !visible || !visible.length) return next()
+  const pages = (visible && visible.length) ? visible : ['/', '/ai-chat', '/navigate', '/enterprise', '/documents', '/personalize', '/settings']
 
-  if (visible.includes(to.path) || to.path === '/') return next()
+  if (pages.includes(to.path) || to.path === '/') return next()
 
   // Redirect blocked pages to home
   return next('/')
