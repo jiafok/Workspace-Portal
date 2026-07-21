@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Header
 from sqlalchemy.orm import Session
 from typing import Optional
 from database import get_db
-from models import User, LoginSession, UserSettings
+from models import User, LoginSession, UserSettings, SystemSettings
 from schemas import UserCreate, UserLogin, TokenResponse, UserResponse, OAuthConfig, UserSettingsUpdate, UserSettingsResponse
 import hashlib
 import secrets
@@ -73,6 +73,34 @@ def get_admin_user(current_user: User = Depends(get_current_user)) -> User:
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Admin access required")
     return current_user
+
+
+def require_editor(current_user: User = Depends(get_current_user)) -> User:
+    """Allow admin and standard users; block guest from write operations."""
+    if current_user.role == "guest":
+        raise HTTPException(status_code=403, detail="Guest accounts cannot edit. Please switch to an editor account.")
+    return current_user
+
+
+# Guest auto-login (no credentials needed)
+@router.post("/guest-session", response_model=TokenResponse)
+def guest_session(db: Session = Depends(get_db)):
+    """Auto-login as guest. Creates guest account if missing."""
+    guest = db.query(User).filter(User.username == "guest").first()
+    if not guest:
+        guest_pw = hash_password("guest123")
+        guest = User(
+            username="guest", hashed_password=guest_pw,
+            display_name="访客", role="guest", email="guest@workspace.local",
+            is_active=True, oauth_provider="local"
+        )
+        db.add(guest)
+        db.commit()
+        db.refresh(guest)
+    guest.last_login = datetime.utcnow()
+    db.commit()
+    token = create_session(guest.id, db)
+    return TokenResponse(access_token=token, user=guest)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -264,3 +292,26 @@ def get_i18n(lang: str):
         },
     }
     return translations.get(lang, translations["en"])
+
+# Page visibility configuration
+@router.get("/page-visibility")
+def get_page_visibility(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return which pages are visible to the current user."""
+    if current_user.role == "admin":
+        return {"role": "admin", "pages": []}  # empty list = all visible
+    setting = db.query(SystemSettings).filter(SystemSettings.key == "page_visibility").first()
+    pages = json.loads(setting.value) if setting and setting.value else []
+    return {"role": current_user.role, "pages": pages}
+
+
+@router.put("/page-visibility")
+def update_page_visibility(data: dict, current_user: User = Depends(get_admin_user), db: Session = Depends(get_db)):
+    """Admin sets which pages non-admin users can see."""
+    pages = data.get("pages", [])
+    setting = db.query(SystemSettings).filter(SystemSettings.key == "page_visibility").first()
+    if setting:
+        setting.value = json.dumps(pages)
+    else:
+        db.add(SystemSettings(key="page_visibility", value=json.dumps(pages)))
+    db.commit()
+    return {"ok": True, "pages": pages}

@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from models import EnterpriseSystem
+from models import EnterpriseSystem, User
 from schemas import (
     EnterpriseSystemCreate, EnterpriseSystemUpdate, EnterpriseSystemResponse,
     SortUpdate
 )
 from datetime import datetime
+from routers.auth import require_editor
 
 router = APIRouter(prefix="/api/enterprise", tags=["enterprise"])
 
@@ -35,7 +36,7 @@ def list_systems(db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=EnterpriseSystemResponse)
-def create_system(data: EnterpriseSystemCreate, db: Session = Depends(get_db)):
+def create_system(data: EnterpriseSystemCreate, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     system = EnterpriseSystem(**data.model_dump())
     db.add(system)
     db.commit()
@@ -44,7 +45,7 @@ def create_system(data: EnterpriseSystemCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/{sid}", response_model=EnterpriseSystemResponse)
-def update_system(sid: int, data: EnterpriseSystemUpdate, db: Session = Depends(get_db)):
+def update_system(sid: int, data: EnterpriseSystemUpdate, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     system = db.query(EnterpriseSystem).filter(EnterpriseSystem.id == sid).first()
     if not system:
         raise HTTPException(status_code=404, detail="Not found")
@@ -56,7 +57,7 @@ def update_system(sid: int, data: EnterpriseSystemUpdate, db: Session = Depends(
 
 
 @router.delete("/{sid}")
-def delete_system(sid: int, db: Session = Depends(get_db)):
+def delete_system(sid: int, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     system = db.query(EnterpriseSystem).filter(EnterpriseSystem.id == sid).first()
     if not system:
         raise HTTPException(status_code=404, detail="Not found")
@@ -66,7 +67,7 @@ def delete_system(sid: int, db: Session = Depends(get_db)):
 
 
 @router.put("/sort")
-def sort_systems(data: SortUpdate, db: Session = Depends(get_db)):
+def sort_systems(data: SortUpdate, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     for item in data.items:
         db.query(EnterpriseSystem).filter(EnterpriseSystem.id == item["id"]).update(
             {"sort_order": item["sort_order"]}

@@ -67,7 +67,6 @@
           <span>账户管理</span>
         </div>
         <div class="setting-body">
-          <!-- Change password -->
           <h4 style="margin-bottom:12px;font-size:14px">修改密码</h4>
           <el-form :model="pwForm" label-position="top" size="small">
             <el-form-item label="新密码">
@@ -76,20 +75,36 @@
             <el-button type="primary" size="small" @click="changePassword">修改密码</el-button>
           </el-form>
 
-          <el-divider />
+          <template v-if="authStore.isAdmin()">
+            <el-divider />
+            <h4 style="margin-bottom:12px;font-size:14px">用户管理 <el-button text size="small" @click="showAddUser=true"><el-icon><Plus /></el-icon> 添加</el-button></h4>
+            <el-table :data="users" size="small" style="width:100%">
+              <el-table-column prop="username" label="用户名" />
+              <el-table-column prop="role" label="角色" width="80" />
+              <el-table-column label="操作" width="120">
+                <template #default="{ row }">
+                  <el-button text size="small" @click="toggleUserRole(row)" :disabled="row.username==='admin'">切换角色</el-button>
+                  <el-button text size="small" type="danger" @click="removeUser(row)" :disabled="row.username==='admin'">删除</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </template>
+        </div>
+      </div>
 
-          <!-- User management -->
-          <h4 style="margin-bottom:12px;font-size:14px">用户管理 <el-button text size="small" @click="showAddUser=true"><el-icon><Plus /></el-icon> 添加</el-button></h4>
-          <el-table :data="users" size="small" style="width:100%">
-            <el-table-column prop="username" label="用户名" />
-            <el-table-column prop="role" label="角色" width="80" />
-            <el-table-column label="操作" width="120">
-              <template #default="{ row }">
-                <el-button text size="small" @click="toggleUserRole(row)" :disabled="row.username==='admin'">切换角色</el-button>
-                <el-button text size="small" type="danger" @click="removeUser(row)" :disabled="row.username==='admin'">删除</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+      <!-- Admin: Page Visibility -->
+      <div v-if="authStore.isAdmin()" class="setting-card glass">
+        <div class="setting-header">
+          <el-icon size="20"><View /></el-icon>
+          <span>页面可见性 (标准用户)</span>
+        </div>
+        <div class="setting-body">
+          <p style="margin-bottom:12px;color:var(--text-secondary);font-size:13px">控制非管理员用户可以看到哪些页面</p>
+          <el-checkbox-group v-model="editablePageVisibility" @change="savePageVisibility">
+            <div v-for="page in allPages" :key="page.path" style="margin-bottom:6px">
+              <el-checkbox :label="page.path">{{ page.label }}</el-checkbox>
+            </div>
+          </el-checkbox-group>
         </div>
       </div>
 
@@ -122,10 +137,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 import { useSettingsStore } from '../stores/settings'
 import { useAuthStore } from '../stores/auth'
-import api from '../api'
+import api, { updatePageVisibility } from '../api'
 import { ElMessage } from 'element-plus'
 
 const settingsStore = useSettingsStore()
@@ -134,6 +149,28 @@ const pwForm = reactive({ password: '' })
 const users = ref<any[]>([])
 const showAddUser = ref(false)
 const newUser = reactive({ username: '', password: '', email: '', display_name: '' })
+const editablePageVisibility = ref<string[]>([])
+const allPages = [
+  { path: '/', label: '工作台首页' },
+  { path: '/ai-chat', label: 'AI 对话' },
+  { path: '/ai-compare', label: '多模型对比' },
+  { path: '/ai', label: 'AI 工具' },
+  { path: '/prompts', label: 'Prompt 中心' },
+  { path: '/navigate', label: '导航管理' },
+  { path: '/enterprise', label: '企业系统' },
+  { path: '/documents', label: '文档中心' },
+  { path: '/nas', label: 'NAS 中心' },
+  { path: '/docker', label: 'Docker 监控' },
+  { path: '/plugins', label: '插件市场' },
+  { path: '/monitoring', label: '端点监控' },
+  { path: '/github', label: '代码平台' },
+  { path: '/webhooks', label: 'Webhook' },
+  { path: '/notifications', label: '通知中心' },
+  { path: '/audit', label: '审计日志' },
+  { path: '/data', label: '数据管理' },
+  { path: '/personalize', label: '个性化' },
+  { path: '/settings', label: '系统设置' },
+]
 
 async function fetchUsers() {
   try { const { data } = await api.get('/auth/users'); users.value = data } catch { /* */ }
@@ -173,22 +210,27 @@ async function removeUser(row: any) {
   fetchUsers()
 }
 
-onMounted(fetchUsers)
+async function savePageVisibility() {
+  if (!authStore.isAdmin()) return
+  try {
+    await updatePageVisibility(editablePageVisibility.value)
+    authStore.visiblePages = [...editablePageVisibility.value]
+  } catch { /* */ }
+}
 
-const features = [
-  '导航管理 - 分类/网站的新增、编辑、删除、排序',
-  'Web 可视化编辑 - 所有配置在网页完成',
-  '自动图标获取 - favicon + 网站标题 + 描述',
-  '收藏夹导入 - Chrome/Edge/Firefox HTML 导入',
-  'AI 工作区 - 内置9+主流AI，支持置顶/收藏/隐藏',
-  'NAS 中心 - 内网/远程地址自动切换',
-  'Docker 监控 - 容器状态/CPU/内存/启停控制',
-  '全局搜索 - Ctrl+K 快速搜索',
-  '多布局模式 - 卡片/列表/桌面/侧边栏',
-  '深色/浅色/自动主题',
-  '仪表盘 - 系统资源/时间/最近访问',
-  '数据管理 - JSON/CSV 导入导出、自动备份',
-]
+// Sync page visibility from store when it loads
+watch(() => authStore.visiblePages, (pages) => {
+  if (pages && pages.length) {
+    editablePageVisibility.value = [...pages]
+  }
+}, { immediate: true })
+
+onMounted(async () => {
+  fetchUsers()
+  if (authStore.isAdmin()) {
+    editablePageVisibility.value = [...authStore.visiblePages]
+  }
+})
 </script>
 
 <style scoped>

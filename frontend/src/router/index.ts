@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useAuthStore } from '../stores/auth'
 
 const router = createRouter({
   history: createWebHistory(),
@@ -24,6 +25,27 @@ const router = createRouter({
     { path: '/webhooks', name: 'webhooks', component: () => import('../views/WebhookManager.vue') },
     { path: '/audit', name: 'audit', component: () => import('../views/AuditLogView.vue') },
   ],
+})
+
+router.beforeEach((to, _from, next) => {
+  // Allow login page always
+  if (to.path === '/login') return next()
+
+  const authStore = useAuthStore()
+  if (!authStore.isAuthenticated) return next()
+
+  // Admin sees everything
+  if (authStore.user?.role === 'admin') return next()
+
+  // Non-admin: check page visibility
+  const visible = authStore.visiblePages
+  // If visibility not loaded or empty (no restriction), allow all
+  if (!authStore.pageVisibilityLoaded || !visible || !visible.length) return next()
+
+  if (visible.includes(to.path) || to.path === '/') return next()
+
+  // Redirect blocked pages to home
+  return next('/')
 })
 
 export default router

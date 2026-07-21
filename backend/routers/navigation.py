@@ -2,12 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 from database import get_db
-from models import Category, Website
+from models import Category, Website, User
 from schemas import (
     CategoryCreate, CategoryUpdate, CategoryResponse,
     WebsiteCreate, WebsiteUpdate, WebsiteResponse, SortUpdate
 )
 from services.favicon_service import fetch_site_info, download_icon
+from routers.auth import get_current_user, require_editor
 
 router = APIRouter(prefix="/api/navigation", tags=["navigation"])
 
@@ -30,7 +31,7 @@ def get_categories(db: Session = Depends(get_db)):
 
 
 @router.post("/categories", response_model=CategoryResponse)
-def create_category(data: CategoryCreate, db: Session = Depends(get_db)):
+def create_category(data: CategoryCreate, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     cat = Category(**data.model_dump())
     db.add(cat)
     db.commit()
@@ -44,7 +45,7 @@ def create_category(data: CategoryCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/categories/{cat_id}", response_model=CategoryResponse)
-def update_category(cat_id: int, data: CategoryUpdate, db: Session = Depends(get_db)):
+def update_category(cat_id: int, data: CategoryUpdate, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     cat = db.query(Category).filter(Category.id == cat_id).first()
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -63,7 +64,7 @@ def update_category(cat_id: int, data: CategoryUpdate, db: Session = Depends(get
 
 
 @router.delete("/categories/{cat_id}")
-def delete_category(cat_id: int, db: Session = Depends(get_db)):
+def delete_category(cat_id: int, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     cat = db.query(Category).filter(Category.id == cat_id).first()
     if not cat:
         raise HTTPException(status_code=404, detail="Category not found")
@@ -73,7 +74,7 @@ def delete_category(cat_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/categories/sort")
-def sort_categories(data: SortUpdate, db: Session = Depends(get_db)):
+def sort_categories(data: SortUpdate, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     for item in data.items:
         db.query(Category).filter(Category.id == item["id"]).update(
             {"sort_order": item["sort_order"]}
@@ -93,7 +94,7 @@ def get_websites(category_id: int = None, db: Session = Depends(get_db)):
 
 
 @router.post("/websites", response_model=WebsiteResponse)
-async def create_website(data: WebsiteCreate, db: Session = Depends(get_db)):
+async def create_website(data: WebsiteCreate, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     if not data.name or not data.description:
         try:
             info = await fetch_site_info(data.url)
@@ -118,7 +119,7 @@ async def create_website(data: WebsiteCreate, db: Session = Depends(get_db)):
 
 
 @router.put("/websites/{web_id}", response_model=WebsiteResponse)
-def update_website(web_id: int, data: WebsiteUpdate, db: Session = Depends(get_db)):
+def update_website(web_id: int, data: WebsiteUpdate, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     web = db.query(Website).filter(Website.id == web_id).first()
     if not web:
         raise HTTPException(status_code=404, detail="Website not found")
@@ -131,7 +132,7 @@ def update_website(web_id: int, data: WebsiteUpdate, db: Session = Depends(get_d
 
 
 @router.delete("/websites/{web_id}")
-def delete_website(web_id: int, db: Session = Depends(get_db)):
+def delete_website(web_id: int, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     web = db.query(Website).filter(Website.id == web_id).first()
     if not web:
         raise HTTPException(status_code=404, detail="Website not found")
@@ -141,7 +142,7 @@ def delete_website(web_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/websites/sort")
-def sort_websites(data: SortUpdate, db: Session = Depends(get_db)):
+def sort_websites(data: SortUpdate, db: Session = Depends(get_db), editor: User = Depends(require_editor)):
     for item in data.items:
         updates = {"sort_order": item["sort_order"]}
         if "category_id" in item:

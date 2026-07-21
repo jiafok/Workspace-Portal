@@ -23,9 +23,14 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useAuthStore } from '../stores/auth'
+
 defineEmits(['navigate'])
 
-const navItems = [
+const authStore = useAuthStore()
+
+const allNavItems = [
   { path: '/', label: '工作台首页', icon: 'HomeFilled' },
   { path: '/ai-chat', label: 'AI 对话', icon: 'ChatDotSquare' },
   { path: '/ai-compare', label: '多模型对比', icon: 'Connection' },
@@ -46,6 +51,14 @@ const navItems = [
   { path: '/personalize', label: '个性化', icon: 'Brush' },
   { path: '/settings', label: '系统设置', icon: 'Setting' },
 ]
+
+const navItems = computed(() => {
+  if (authStore.user?.role === 'admin') return allNavItems
+  // Non-admin: filter by page visibility config
+  const visible = authStore.visiblePages
+  if (!visible || !visible.length) return allNavItems
+  return allNavItems.filter(item => visible.includes(item.path))
+})
 </script>
 
 <style scoped>

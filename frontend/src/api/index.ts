@@ -147,5 +147,10 @@ export const getUserSettings = () => api.get('/auth/settings')
 export const updateUserSettings = (data: any) => api.put('/auth/settings', data)
 export const getI18n = (lang: string) => api.get(`/auth/i18n/${lang}`)
 
+// Auto guest session
+export const guestSession = () => api.post('/auth/guest-session')
+export const getPageVisibility = () => api.get('/auth/page-visibility')
+export const updatePageVisibility = (pages: string[]) => api.put('/auth/page-visibility', { pages })
+
 export { api }
 export default api

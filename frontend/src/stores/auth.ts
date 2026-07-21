@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import api from '../api'
+import api, { guestSession, getPageVisibility } from '../api'
 
 interface User {
   id: number
@@ -16,6 +16,8 @@ export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const token = ref<string | null>(localStorage.getItem('wp_token'))
   const isAuthenticated = computed(() => !!token.value)
+  const visiblePages = ref<string[]>([])
+  const pageVisibilityLoaded = ref(false)
 
   function setAuth(t: string, u: User) {
     token.value = t
@@ -46,5 +48,34 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.role === 'admin'
   }
 
-  return { user, token, isAuthenticated, setAuth, logout, fetchMe, isAdmin }
+  async function loginAsGuest() {
+    try {
+      const { data } = await guestSession()
+      setAuth(data.access_token, data.user)
+      await loadPageVisibility()
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  async function loadPageVisibility() {
+    if (!token.value) return
+    try {
+      const { data } = await getPageVisibility()
+      visiblePages.value = data.pages || []
+      pageVisibilityLoaded.value = true
+    } catch {
+      visiblePages.value = []
+    }
+  }
+
+  function canAccessPage(path: string): boolean {
+    if (user.value?.role === 'admin') return true
+    if (!pageVisibilityLoaded.value) return true // not yet loaded, allow
+    if (!visiblePages.value.length) return true // empty = no restriction
+    return visiblePages.value.includes(path)
+  }
+
+  return { user, token, isAuthenticated, visiblePages, pageVisibilityLoaded, setAuth, logout, fetchMe, isAdmin, loginAsGuest, loadPageVisibility, canAccessPage }
 })
