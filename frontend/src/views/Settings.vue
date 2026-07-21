@@ -68,12 +68,15 @@
         </div>
         <div class="setting-body">
           <h4 style="margin-bottom:12px;font-size:14px">修改密码</h4>
-          <el-form :model="pwForm" label-position="top" size="small">
-            <el-form-item label="新密码">
-              <el-input v-model="pwForm.password" type="password" show-password placeholder="输入新密码" />
-            </el-form-item>
-            <el-button type="primary" size="small" @click="changePassword">修改密码</el-button>
-          </el-form>
+          <template v-if="!authStore.isGuest()">
+            <el-form :model="pwForm" label-position="top" size="small">
+              <el-form-item label="新密码">
+                <el-input v-model="pwForm.password" type="password" show-password placeholder="输入新密码" />
+              </el-form-item>
+              <el-button type="primary" size="small" @click="changePassword">修改密码</el-button>
+            </el-form>
+          </template>
+          <p v-else style="color:var(--text-muted);font-size:13px">访客模式不可修改密码</p>
 
           <template v-if="authStore.isAdmin()">
             <el-divider />

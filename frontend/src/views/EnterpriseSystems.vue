@@ -7,10 +7,10 @@
         <p>把 OA、Jira、QCN、MES、共享盘和内网工具集中到一个入口，适合多系统、多域名场景统一维护。</p>
       </div>
       <div class="hero-actions">
-        <el-button @click="openBulkEditor">
+        <el-button v-if="!authStore.isGuest()" @click="openBulkEditor">
           <el-icon><EditPen /></el-icon> 批量编辑
         </el-button>
-        <el-button type="primary" @click="openCreate"><el-icon><Plus /></el-icon> 添加系统</el-button>
+        <el-button v-if="!authStore.isGuest()" type="primary" @click="openCreate"><el-icon><Plus /></el-icon> 添加系统</el-button>
       </div>
     </section>
 
@@ -126,6 +126,7 @@
 import { ref, computed, onMounted, reactive } from 'vue'
 import { getEnterpriseSystems, createEnterpriseSystem, updateEnterpriseSystem, deleteEnterpriseSystem, sortEnterpriseSystems, recordEnterpriseVisit } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAuthStore } from '../stores/auth'
 
 const systems = ref<any[]>([])
 const showDialog = ref(false)

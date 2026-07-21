@@ -152,5 +152,11 @@ export const guestSession = () => api.post('/auth/guest-session')
 export const getPageVisibility = () => api.get('/auth/page-visibility')
 export const updatePageVisibility = (pages: string[]) => api.put('/auth/page-visibility', { pages })
 
+// Local folder browsing
+export const browseLocalFolder = (sourceId: number, path = '') => api.get('/documents/local/browse', { params: { source_id: sourceId, path } })
+export const getLocalFileUrl = (sourceId: number, path: string, download = false) =>
+  `/api/documents/local/file?source_id=${sourceId}&path=${encodeURIComponent(path)}${download ? '&download=true' : ''}`
+export const searchLocalFolder = (sourceId: number, q: string) => api.get('/documents/local/search', { params: { source_id: sourceId, q } })
+
 export { api }
 export default api

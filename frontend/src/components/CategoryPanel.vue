@@ -9,10 +9,10 @@
         <span class="cat-count">{{ websites.length }} 个网站</span>
       </div>
       <div class="cat-btns">
-        <el-button size="small" round @click="$emit('addWebsite', category)">
+        <el-button v-if="!authStore.isGuest()" size="small" round @click="$emit('addWebsite', category)">
           <el-icon><Plus /></el-icon> 添加
         </el-button>
-        <el-dropdown trigger="click" @command="onCmd">
+        <el-dropdown v-if="!authStore.isGuest()" trigger="click" @command="onCmd">
           <el-button size="small" round><el-icon><MoreFilled /></el-icon></el-button>
           <template #dropdown>
             <el-dropdown-menu>
@@ -25,7 +25,7 @@
     </div>
     <div v-if="websites.length" class="site-grid">
       <div v-for="w in websites" :key="w.id" class="site-card glass glass-hover" @click="openWeb(w)">
-        <div class="site-actions" @click.stop>
+        <div v-if="!authStore.isGuest()" class="site-actions" @click.stop>
           <el-dropdown trigger="click" @command="(cmd) => onSiteCmd(cmd, w)">
             <el-button size="small" circle>
               <el-icon><MoreFilled /></el-icon>
@@ -57,10 +57,12 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useNavigationStore } from '../stores/navigation'
+import { useAuthStore } from '../stores/auth'
 
 const p = defineProps<{ category: any; websites: any[]; index?: number }>()
 const emit = defineEmits(['addWebsite', 'editCategory', 'deleteCategory', 'editWebsite', 'deleteWebsite', 'refresh'])
 const nav = useNavigationStore()
+const authStore = useAuthStore()
 
 const animStyle = computed(() => ({ animationDelay: (p.index ?? 0) * 0.06 + 's' }))
 const iconBg = computed(() => {

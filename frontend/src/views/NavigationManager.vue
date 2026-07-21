@@ -3,13 +3,13 @@
     <!-- Toolbar -->
     <div class="toolbar glass">
       <div class="toolbar-left">
-        <el-button type="primary" @click="showAddCategory = true">
+        <el-button v-if="!authStore.isGuest()" type="primary" @click="showAddCategory = true">
           <el-icon><FolderAdd /></el-icon> 新增分类
         </el-button>
-        <el-button @click="openBulkEditor">
+        <el-button v-if="!authStore.isGuest()" @click="openBulkEditor">
           <el-icon><EditPen /></el-icon> 批量编辑
         </el-button>
-        <el-button @click="showImport = true">
+        <el-button v-if="!authStore.isGuest()" @click="showImport = true">
           <el-icon><Upload /></el-icon> 导入收藏夹
         </el-button>
       </div>
@@ -141,12 +141,14 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, reactive } from 'vue'
 import { useNavigationStore } from '../stores/navigation'
+import { useAuthStore } from '../stores/auth'
 import CategoryPanel from '../components/CategoryPanel.vue'
 import BookmarkImport from '../components/BookmarkImport.vue'
 import draggable from 'vuedraggable'
 import { ElMessage, ElMessageBox } from 'element-plus'
 
 const navigationStore = useNavigationStore()
+const authStore = useAuthStore()
 
 const searchText = ref('')
 const showAddCategory = ref(false)

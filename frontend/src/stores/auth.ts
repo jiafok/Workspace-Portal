@@ -51,6 +51,10 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.role === 'admin'
   }
 
+  function isGuest() {
+    return user.value?.role === 'guest'
+  }
+
   async function loginAsGuest() {
     try {
       const { data } = await guestSession()
@@ -80,5 +84,5 @@ export const useAuthStore = defineStore('auth', () => {
     return visiblePages.value.includes(path)
   }
 
-  return { user, token, isAuthenticated, visiblePages, pageVisibilityLoaded, setAuth, logout, fetchMe, isAdmin, loginAsGuest, loadPageVisibility, canAccessPage }
+  return { user, token, isAuthenticated, visiblePages, pageVisibilityLoaded, setAuth, logout, fetchMe, isAdmin, isGuest, loginAsGuest, loadPageVisibility, canAccessPage }
 })

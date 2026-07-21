@@ -2,7 +2,7 @@
   <div class="nas-center">
     <div class="page-header">
       <h2><el-icon><Monitor /></el-icon> NAS 中心</h2>
-      <el-button type="primary" @click="openCreate"><el-icon><Plus /></el-icon> 添加服务</el-button>
+      <el-button v-if="!authStore.isGuest()" type="primary" @click="openCreate"><el-icon><Plus /></el-icon> 添加服务</el-button>
     </div>
 
     <el-alert title="点击服务卡片自动检测内网可达性，优先使用内网地址" type="info" :closable="false" class="mb-4" />
@@ -19,7 +19,7 @@
               {{ svc._status || '点击检测' }}
             </span>
           </div>
-          <div class="nas-actions">
+          <div v-if="!authStore.isGuest()" class="nas-actions">
             <el-button text size="small" @click.stop="openEdit(svc)"><el-icon><Edit /></el-icon></el-button>
             <el-button text size="small" @click.stop="handleDelete(svc)"><el-icon><Delete /></el-icon></el-button>
           </div>
@@ -60,6 +60,7 @@
 import { ref, computed, onMounted, reactive } from 'vue'
 import { getNASServices, createNASService, updateNASService, deleteNASService, recordNASVisit } from '../api'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { useAuthStore } from '../stores/auth'
 
 const services = ref<any[]>([])
 const showAdd = ref(false)
